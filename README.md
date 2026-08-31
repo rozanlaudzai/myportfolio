@@ -1,3 +1,7 @@
-# Tugas PBP
+# Tugas PBP UI
 
-## Gw ga pake AI untuk sementara ini
+Nama: Rozan Laudzai
+
+NPM: 2506547544
+
+Kelas: PBP B
