@@ -137,3 +137,6 @@ sftp-config.json
 
 # macOS
 .DS_Store
+
+# pacil web service credential
+pws_cred.txt
