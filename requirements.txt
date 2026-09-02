@@ -1,12 +1,5 @@
-asgiref
-certifi
-charset-normalizer
-django
+django~=6.0
 gunicorn
-idna
 psycopg2-binary
 python-dotenv
-requests
-sqlparse
-urllib3
 whitenoise
