@@ -140,3 +140,6 @@ sftp-config.json
 
 # pacil web service credential
 pws_cred.txt
+
+# node js for tailwindcss
+node_modules/
