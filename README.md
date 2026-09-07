@@ -73,6 +73,8 @@ npx @tailwindcss/cli -i ./static/css/tailwind-input.css -o ./static/css/tailwind
 python3 manage.py runserver
 ```
 
+5. Open `http://127.0.0.1:8000` on your browser.
+
 ## AI Disclosure
 
 Sejauh ini, saya memakai Codex GPT-6 Astra untuk:
