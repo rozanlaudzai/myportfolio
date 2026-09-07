@@ -72,3 +72,12 @@ npx @tailwindcss/cli -i ./static/css/tailwind-input.css -o ./static/css/tailwind
 ```bash
 python3 manage.py runserver
 ```
+
+## AI Disclosure
+
+Sejauh ini, saya memakai Codex GPT-6 Astra untuk:
+
+- Improve dokumentasi di `README.md` yang telah saya tulis.
+- CSS styling untuk experience section: responsive logo size, experience timeline, etc.
+- Bertanya apa perbedaan `<section>`, `<article>`, dan `<aside>`.
+- Tautan chat Tugas 1: https://chatgpt.com/s/cx_6a9e91d814408191b0ad0bf551234c43
