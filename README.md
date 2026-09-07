@@ -75,6 +75,16 @@ python3 manage.py runserver
 
 5. Open `http://127.0.0.1:8000` on your browser.
 
+## Pertanyaan Reflektif
+
+### Tugas 1
+
+1. Saya menggunakan `<section>` untuk membagi halaman menjadi beberapa sections berdasarkan topiknya, misalnya profile dan experience. Sementara `<article>`, saya gunakan untuk wrap content yang bisa dianggap satu kesatuan, misalnya satu experience.
+
+2. Saya sempat sadar ketika tampilan diubah ke mobile, wrapper size dari logo lebih kecil daripada logonya itu sendiri. Solusinya adalah dengan menambah `object-fit: contain` pada setiap `<img>` logo dan membuat `@media` untuk memperkecil logo size ketika di mobile.
+
+3. Batasan yang paling saya rasakan di static web adalah saya harus hard-code semua informasi yang disajikan. Ketika saya ingin mengubah css style pada suatu list, maka saya harus mengubah css style dari semua konten di list tersebut. Kedepannya, saya ingin memasukkan segala informasi (e.g. experience, skills, awards) ke dalam database lalu me-render itu semua melalui Django Template Language.
+
 ## AI Disclosure
 
 Sejauh ini, saya memakai Codex GPT-6 Astra untuk:
