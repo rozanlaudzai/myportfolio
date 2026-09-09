@@ -29,6 +29,10 @@ This project is a personal portfolio website built with Django.
 
 - Pacil Web Service (does not support uv, bruh)
 
+## Deployment
+
+https://rozan-laudzai-myportfolio.pws.cs.ui.ac.id/
+
 ## Local Setup
 
 1. Create and activate a virtual environment:
