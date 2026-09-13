@@ -1,3 +1,4 @@
+{% load static %}
 <!doctype html>
 <html lang="en">
   <head>
@@ -10,9 +11,9 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="icon" href="/static/img/rozan.jpg" />
-    <link rel="stylesheet" href="/static/css/main/experience.css" />
-    <link rel="stylesheet" href="/static/css/tailwind-output.css" />
+    <link rel="icon" href="{% static 'img/rozan.jpg' %}" />
+    <link rel="stylesheet" href="{% static 'css/main/experience.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/main/tailwind-output.css' %}" />
   </head>
   <body>
     <header class="site-header">
@@ -26,31 +27,64 @@
     </header>
 
     <main>
-      <section class="experience-section" id="experience">
+      <!-- Section: Experience -->
+      <section class="experience" aria-labelledby="experience-title">
         <div class="container">
-          <h1>Experience</h1>
-
-          <div class="experience-grid">
+          <div class="experience-heading">
+            <h2 id="experience-title">Experience</h2>
+          </div>
+          <ol class="experience-list">
             {% for experience in experience_list %}
-            <article class="experience-card">
-              <span class="experience-category">
-                {{ experience.get_category_display }}
-              </span>
-              <h2>{{ experience.title }}</h2>
-              <p class="experience-description">{{ experience.description }}</p>
-
-              {% if experience.is_ongoing %}
-              <p class="experience-status">On Going</p>
-              {% else %}
-              <p class="experience-status">Ended</p>
-              {% endif %}
-            </article>
+            <li class="experience-item">
+              <span class="experience-number" aria-hidden="true"></span>
+              <article class="experience-card" aria-labelledby="role-01">
+                <div class="experience-card-header">
+                  <div class="experience-logo experience-logo-large">
+                    <img
+                      src="{{ experience.company_logo }}"
+                      alt="{{ experience.company_name }} logo"
+                      width="72"
+                      height="72"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div class="experience-details">
+                    <p class="experience-organization">
+                      {{ experience.company_name }}
+                    </p>
+                    <h3 id="role-01">{{ experience.title }}</h3>
+                  </div>
+                  <p class="experience-date">
+                    <time>{{ experience.started_at|date:"M Y" }}</time>
+                    &ndash; {% if experience.is_ongoing %}
+                    <time>Present</time>
+                    {% else %}
+                    <time>{{ experience.ended_at|date:"M Y" }}</time>
+                    {% endif %}
+                  </p>
+                </div>
+                <div class="experience-card-body">
+                  <p class="experience-description">
+                    {{ experience.description }}
+                  </p>
+                  <ul
+                    class="experience-skills"
+                    aria-label="Skills and technologies"
+                  >
+                    {% for skill in experience.skills.all %}
+                    <li>{{ skill.name }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </article>
+            </li>
             {% empty %}
             <p class="empty-state">No experience added.</p>
             {% endfor %}
-          </div>
+          </ol>
         </div>
       </section>
+      <!-- End Section: Experience -->
     </main>
 
     <footer class="site-footer">
