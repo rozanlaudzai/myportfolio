@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="icon" href="/static/img/rozan.jpg" />
+    <link rel="icon" href="{% static 'img/rozan.jpg' %}" />
     <link rel="stylesheet" href="{% static 'css/main/index.css' %}" />
     <link rel="stylesheet" href="{% static 'css/tailwind-output.css' %}" />
   </head>
@@ -22,6 +22,7 @@
         <nav>
           <a href="{% url 'main:index' %}">Profile</a>
           <a href="{% url 'main:show_experience' %}">Experience</a>
+          <a href="{% url 'main:show_awards' %}">Awards</a>
         </nav>
       </div>
     </header>
