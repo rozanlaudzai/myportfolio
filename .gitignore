@@ -143,3 +143,6 @@ pws_cred.txt
 
 # node js for tailwindcss
 node_modules/
+
+# private queries
+private_queries.py
