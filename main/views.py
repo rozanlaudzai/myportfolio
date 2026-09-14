@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import Experience
+from .models import Experience, Award
 
 def index(request):
     context = {
@@ -13,6 +13,13 @@ def index(request):
 def show_experience(request):
     context = {
         'name': 'Rozan',
-        'experience_list': Experience.objects.all()
+        'experience_list': Experience.objects.all(),
     }
     return render(request, 'main/experience.html', context)
+
+def show_awards(request):
+    context = {
+        'name': 'Rozan',
+        'award_list': Award.objects.all(),
+    }
+    return render(request, 'main/awards.html', context)

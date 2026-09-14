@@ -42,3 +42,20 @@ class Experience(models.Model):
     @property
     def is_ongoing(self):
         return self.ended_at is None
+
+class Award(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+    title = models.CharField(max_length=255)
+    issuer = models.CharField(max_length=255)
+    description = models.TextField()
+    awarded_at = models.DateField()
+
+    class Meta:
+        ordering = ['-awarded_at', 'title']
+
+    def __str__(self):
+        return f'{self.title} - {self.issuer}'
