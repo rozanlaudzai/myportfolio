@@ -104,6 +104,8 @@ Sejauh ini, saya memakai Codex GPT-6 Astra untuk:
 - Improve dokumentasi di `README.md` yang telah saya tulis.
 - CSS styling untuk experience section: responsive logo size, experience timeline, etc.
 - Bertanya apa perbedaan `<section>`, `<article>`, dan `<aside>`.
-- Tautan chat Tugas 1: https://chatgpt.com/s/cx_6a9e91d814408191b0ad0bf551234c43
+- Assignment 1's chat link: https://chatgpt.com/s/cx_6a9e91d814408191b0ad0bf551234c43
 - Membuat awards HTML page sesuai dengan the other page patterns serta melakukan CSS styling-nya.
-- Tautan chat Tugas 2: https://chatgpt.com/s/cx_6aa8187954f081919b4482a699b0e1f1
+- Add tests for award
+- Update tests for current experience model
+- Assignment 2's chat link: https://chatgpt.com/s/cx_6aa823ffd7708191affbf11337d3726b
