@@ -310,4 +310,12 @@ h1,
     padding: 3px;
   }
 }
+
+.empty-state {
+  padding: 1.75rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fffdf9;
+  color: var(--text-muted);
+}
 /* Experience End */
