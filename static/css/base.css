@@ -1,0 +1,80 @@
+/* Basic Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+/* Basic Reset End */
+
+/* Basic Setup */
+:root {
+  --ink: #1c1917;
+  --paper: #faf6f0;
+  --accent: #d95d39;
+  --accent-dark: #a8442a;
+  --line: #e3d9c9;
+  --text-muted: #6b6459;
+  --radius: 4px;
+}
+
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--ink);
+  background-color: var(--paper);
+  line-height: 1.6;
+}
+
+h1,
+.brand {
+  font-family:
+    "Space Grotesk",
+    -apple-system,
+    sans-serif;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+/* Basic Setup End */
+
+/* Header */
+.site-header {
+  border-bottom: 1px solid var(--line);
+}
+
+.site-header .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+}
+
+.brand {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.site-header nav {
+  display: flex;
+  gap: 2rem;
+}
+
+.site-header nav a {
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+/* Header End */
+
+/* Footer */
+.site-footer {
+  padding: 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  border-top: 1px solid var(--line);
+}
+/* Footer End */
