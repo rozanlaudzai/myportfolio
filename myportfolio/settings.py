@@ -151,3 +151,6 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+# CSRF Token
+CSRF_TRUSTED_ORIGIN = [os.getenv('MY_DOMAIN')]
