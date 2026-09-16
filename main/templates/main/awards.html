@@ -1,78 +1,47 @@
+{% extends 'base.html' %}
+
+<!--  -->
 {% load static %}
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ name }} - Portfolio</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="icon" href="{% static 'img/rozan.jpg' %}" />
-    <link rel="stylesheet" href="{% static 'css/main/awards.css' %}" />
-    <link rel="stylesheet" href="{% static 'css/tailwind-output.css' %}" />
-  </head>
-  <body>
-    <header class="site-header">
-      <div class="container">
-        <a href="{% url 'main:index' %}" class="brand">{{ name }}</a>
-        <nav>
-          <a href="{% url 'main:index' %}">Profile</a>
-          <a href="{% url 'main:show_experience' %}">Experience</a>
-          <a href="{% url 'main:show_awards' %}" aria-current="page">Awards</a>
-        </nav>
-      </div>
-    </header>
 
-    <main>
-      <!-- Section: Awards -->
-      <section class="awards" aria-labelledby="awards-title">
-        <div class="container">
-          <div class="awards-heading">
-            <h1 id="awards-title">Awards</h1>
+<!--  -->
+{% block meta %}
+<link rel="stylesheet" href="{% static 'css/main/awards.css' %}" />
+{% endblock meta %}
+
+<!--  -->
+{% block content %}
+<!-- Section: Awards -->
+<section class="awards" aria-labelledby="awards-title">
+  <div class="container">
+    <div class="awards-heading">
+      <h1 id="awards-title">Awards</h1>
+    </div>
+    <ol class="awards-list" role="list">
+      {% for award in award_list %}
+      <li class="award-item">
+        <span class="award-number" aria-hidden="true"
+          >{{ forloop.counter|stringformat:"02d" }}</span
+        >
+        <article class="award-card" aria-labelledby="award-{{ award.id }}">
+          <div class="award-card-header">
+            <div class="award-details">
+              <p class="award-issuer">{{ award.issuer }}</p>
+              <h2 id="award-{{ award.id }}">{{ award.title }}</h2>
+            </div>
+            <time
+              class="award-date"
+              datetime="{{ award.awarded_at|date:'Y-m-d' }}"
+              >{{ award.awarded_at|date:"M Y" }}</time
+            >
           </div>
-          <ol class="awards-list" role="list">
-            {% for award in award_list %}
-            <li class="award-item">
-              <span class="award-number" aria-hidden="true"
-                >{{ forloop.counter|stringformat:"02d" }}</span
-              >
-              <article
-                class="award-card"
-                aria-labelledby="award-{{ award.id }}"
-              >
-                <div class="award-card-header">
-                  <div class="award-details">
-                    <p class="award-issuer">{{ award.issuer }}</p>
-                    <h2 id="award-{{ award.id }}">{{ award.title }}</h2>
-                  </div>
-                  <time
-                    class="award-date"
-                    datetime="{{ award.awarded_at|date:'Y-m-d' }}"
-                    >{{ award.awarded_at|date:"M Y" }}</time
-                  >
-                </div>
-                <p class="award-description">
-                  {{ award.description|linebreaksbr }}
-                </p>
-              </article>
-            </li>
-            {% empty %}
-            <li class="empty-state">No awards added yet.</li>
-            {% endfor %}
-          </ol>
-        </div>
-      </section>
-      <!-- End Section: Awards -->
-    </main>
-
-    <footer class="site-footer">
-      <div class="container">
-        <p>&copy; 2026 Rozan. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
-      </div>
-    </footer>
-  </body>
-</html>
+          <p class="award-description">{{ award.description|linebreaksbr }}</p>
+        </article>
+      </li>
+      {% empty %}
+      <li class="empty-state">No awards added yet.</li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>
+<!-- End Section: Awards -->
+{% endblock content %}
