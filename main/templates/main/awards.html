@@ -15,7 +15,29 @@
   <div class="container">
     <div class="awards-heading">
       <h1 id="awards-title">Awards</h1>
+      <a href="{% url 'main:create_award' %}" class="button award-add-button">
+        <span aria-hidden="true">+</span>
+        Add Award
+      </a>
     </div>
+
+    <!-- search -->
+    <form
+      method="get"
+      action="{% url 'main:show_awards' %}"
+      class="award-search"
+    >
+      <input
+        type="search"
+        name="title"
+        value="{{ title_query }}"
+        placeholder="Search by award title"
+        class="award-search__input"
+        aria-label="Search by award title"
+      />
+      <button type="submit" class="button">Find</button>
+    </form>
+
     <ol class="awards-list" role="list">
       {% for award in award_list %}
       <li class="award-item">
@@ -35,10 +57,21 @@
             >
           </div>
           <p class="award-description">{{ award.description|linebreaksbr }}</p>
+          <div class="award-card-actions">
+            <div class="award-actions">
+              {% include 'main/components/award-delete-modal.html' with award=award %}
+            </div>
+          </div>
         </article>
       </li>
       {% empty %}
+      <!--  -->
+      {% if title_query %}
+      <li class="empty-state">No awards found.</li>
+      {% else %}
       <li class="empty-state">No awards added yet.</li>
+      {% endif %}
+      <!--  -->
       {% endfor %}
     </ol>
   </div>
