@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+<!--  -->
+{% load static %}
+
+<!--  -->
+{% block meta %}
+<link rel="stylesheet" href="{% static 'css/main/awards.css' %}" />
+<link rel="stylesheet" href="{% static 'css/main/award-form.css' %}" />
+{% endblock meta %}
+
+<!--  -->
+{% block content %}
+<!-- Section: Award Form -->
+<section class="awards">
+  <div class="container">
+    <h1>Add New Award</h1>
+
+    <form
+      method="post"
+      action="{% url 'main:create_award' %}"
+      class="award-form"
+    >
+      {% csrf_token %}
+      <!--  -->
+      {% for field in form %}
+      <div class="form-group">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        <!--  -->
+        {% for error in field.errors %}
+        <p class="form-error">{{ error }}</p>
+        {% endfor %}
+      </div>
+      {% endfor %}
+      <button type="submit" class="button">Add Award</button>
+      <a href="{% url 'main:show_awards' %}" class="button button-secondary"
+        >Cancel</a
+      >
+    </form>
+  </div>
+</section>
+<!-- End Section: Award Form -->
+{% endblock content %}

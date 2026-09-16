@@ -41,18 +41,25 @@ labschool = Experience.objects.create(
 
 labschool.skills.add(cpp, prog_fund)
 
-osn = Award.objects.create(
+Award.objects.create(
     title='Finalist - OSN Informatika (Indonesian NOI) 2024',
     issuer='Ministry of Education of The Republic of Indonesia',
     description='OSN Informatika is widely regarded as the most prestigious competitive programming competition for high school students in Indonesia. I got ranked 38th among 100 finalists.',
     awarded_at=date(2024, 8, 1),
 )
 
-nplc = Award.objects.create(
+Award.objects.create(
     title='1st Place - National Programming & Logic Competition 2024',
     issuer='Universitas Ciputra',
     description='National-level competitive programming competition for high school students held by Universitas Ciputra',
     awarded_at=date(2024, 2, 1),
+)
+
+Award.objects.create(
+    title='1st Place - Computer Science Showdown 2025',
+    issuer='Universitas Lampung',
+    description='National-level competitive programming competition for high school students held by Universitas Lampung',
+    awarded_at=date(2025, 11, 1),
 )
 
 exit()
