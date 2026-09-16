@@ -59,12 +59,8 @@ def get_awards_json(request: HttpRequest):
     title_query = request.GET.get('title', '').strip()
     awards = Award.objects.all()
 
-    print(f'{title_query=}')
-
     if title_query:
         awards = awards.filter(title__icontains=title_query)
-        print(f'{[award for award in awards]}')
-
 
     awards_json = serializers.serialize('json', awards)
     return HttpResponse(awards_json, content_type='application/json')
