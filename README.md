@@ -8,11 +8,7 @@
 
 ## Overview
 
-This project is a personal portfolio website built with Django.
-
-## Tech Stack
-
-- Django
+A personal portfolio website built with Django.
 
 ## Environments
 
