@@ -153,4 +153,4 @@ MAILERS = {
 }
 
 # CSRF Token
-CSRF_TRUSTED_ORIGIN = [os.getenv('MY_DOMAIN')]
+CSRF_TRUSTED_ORIGIN = [f'https://{os.getenv('MY_DOMAIN')}']
