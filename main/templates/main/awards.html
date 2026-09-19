@@ -22,6 +22,9 @@
     </div>
 
     <!-- search -->
+    {% for message in messages %}
+    <p class="award-message" role="status">{{ message }}</p>
+    {% endfor %}
     <form
       method="get"
       action="{% url 'main:show_awards' %}"
@@ -59,6 +62,7 @@
           <p class="award-description">{{ award.description|linebreaksbr }}</p>
           <div class="award-card-actions">
             <div class="award-actions">
+              <a href="{% url 'main:edit_award' award.id %}" class="button button-secondary" aria-label="Edit {{ award.title }}">Edit</a>
               {% include 'main/components/award-delete-modal.html' with award=award %}
             </div>
           </div>
