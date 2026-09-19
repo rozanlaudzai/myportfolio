@@ -255,3 +255,145 @@ class AwardEditTest(TestCase):
         self.assertRedirects(response, reverse('main:show_awards'))
         self.assertEqual(Award.objects.count(), 2)
         self.assertTrue(Award.objects.filter(title='Updated Award').exists())
+
+class ExperienceCrudTest(TestCase):
+    def setUp(self):
+        self.skill = Skill.objects.create(name='Python')
+        self.other_skill = Skill.objects.create(name='Django')
+        self.data = {
+            'title': 'Developer', 'company_name': 'Example',
+            'company_logo': 'https://example.com/logo.png',
+            'description': 'Built applications.', 'started_at': '2026-01-01',
+            'ended_at': '', 'skills': 'Python, Django',
+        }
+        self.experience = Experience.objects.create(
+            title='Original', company_name='Example', description='Original description',
+            started_at=date(2025, 1, 1),
+        )
+        self.experience.skills.add(self.skill)
+
+    def test_create_with_multiple_skills(self):
+        url = reverse('main:create_experience')
+        response = self.client.get(url)
+        self.assertContains(response, 'Python')
+        self.assertContains(response, 'Django')
+        response = self.client.post(url, self.data)
+        self.assertRedirects(response, reverse('main:show_experience'))
+        created = Experience.objects.get(title='Developer')
+        self.assertSetEqual(set(created.skills.all()), {self.skill, self.other_skill})
+        self.assertTrue(created.is_ongoing)
+        response = self.client.get(reverse('main:show_experience'))
+        self.assertContains(response, 'src="https://example.com/logo.png"')
+
+    def test_create_without_optional_fields(self):
+        data = {**self.data, 'skills': '', 'company_logo': ''}
+        response = self.client.post(reverse('main:create_experience'), data)
+        self.assertRedirects(response, reverse('main:show_experience'))
+        self.assertFalse(Experience.objects.get(title='Developer').skills.exists())
+
+    def test_edit_prefills_and_replaces_skills(self):
+        url = reverse('main:edit_experience', args=[self.experience.pk])
+        response = self.client.get(url)
+        self.assertContains(response, 'value="2025-01-01"')
+        self.assertEqual(response.context['form'].initial['skills'], 'Python')
+        response = self.client.post(url, {**self.data, 'skills': 'Django', 'ended_at': '2026-09-01'})
+        self.assertRedirects(response, reverse('main:show_experience'))
+        self.experience.refresh_from_db()
+        self.assertEqual(self.experience.title, 'Developer')
+        self.assertFalse(self.experience.is_ongoing)
+        self.assertQuerySetEqual(self.experience.skills.all(), [self.other_skill])
+        self.assertEqual(Experience.objects.count(), 1)
+        self.client.post(url, {**self.data, 'skills': ''})
+        self.assertFalse(self.experience.skills.exists())
+
+    def test_invalid_data_preserves_record_and_skills(self):
+        url = reverse('main:edit_experience', args=[self.experience.pk])
+        for data in ({}, {**self.data, 'ended_at': '2024-01-01'},
+                     {**self.data, 'skills': 'x' * 256},
+                     {**self.data, 'company_logo': 'invalid'}):
+            with self.subTest(data=data):
+                response = self.client.post(url, data)
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(response.context['form'].errors)
+                self.experience.refresh_from_db()
+                self.assertEqual(self.experience.title, 'Original')
+                self.assertQuerySetEqual(self.experience.skills.all(), [self.skill])
+        response = self.client.post(reverse('main:create_experience'), {})
+        self.assertTrue(response.context['form'].errors)
+        self.assertEqual(Experience.objects.count(), 1)
+
+    def test_delete_confirmation_then_post(self):
+        url = reverse('main:delete_experience', args=[self.experience.pk])
+        self.assertContains(self.client.get(url), 'Delete Experience?')
+        self.assertTrue(Experience.objects.filter(pk=self.experience.pk).exists())
+        self.assertRedirects(self.client.post(url), reverse('main:show_experience'))
+        self.assertFalse(Experience.objects.exists())
+        self.assertEqual(Skill.objects.count(), 2)
+
+    def test_search_and_missing_records(self):
+        response = self.client.get(reverse('main:show_experience'), {'title': ' ORIGINAL '})
+        self.assertContains(response, self.experience.title)
+        response = self.client.get(reverse('main:show_experience'), {'title': 'missing'})
+        self.assertContains(response, 'No experiences found.')
+        pk = self.experience.pk
+        self.experience.delete()
+        for action in ('edit_experience', 'delete_experience'):
+            url = reverse(f'main:{action}', args=[pk])
+            self.assertEqual(self.client.get(url).status_code, 404)
+            self.assertEqual(self.client.post(url, self.data).status_code, 404)
+
+    def test_typed_skills_reuse_existing_names_and_create_new_ones(self):
+        response = self.client.post(reverse('main:create_experience'), {
+            **self.data, 'skills': ' python, PYTHON, Django, Go, go, Project   Management, , ',
+        })
+        self.assertRedirects(response, reverse('main:show_experience'))
+        created = Experience.objects.get(title='Developer')
+        self.assertSetEqual(set(created.skills.values_list('name', flat=True)),
+                            {'Python', 'Django', 'Go', 'Project Management'})
+        self.assertEqual(Skill.objects.count(), 4)
+        self.assertTrue(created.skills.filter(pk=self.skill.pk).exists())
+
+    def test_invalid_experience_does_not_create_skills(self):
+        response = self.client.post(reverse('main:create_experience'), {
+            **self.data, 'title': '', 'skills': 'New Skill',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'value="New Skill"')
+        self.assertFalse(Skill.objects.filter(name='New Skill').exists())
+        self.assertEqual(Experience.objects.count(), 1)
+
+    def test_edit_adds_new_skills_without_changing_other_experiences(self):
+        url = reverse('main:edit_experience', args=[self.experience.pk])
+        self.client.post(reverse('main:create_experience'), self.data)
+        response = self.client.post(url, {**self.data, 'skills': 'Rust'})
+        self.assertRedirects(response, reverse('main:show_experience'))
+        self.assertEqual(list(self.experience.skills.values_list('name', flat=True)), ['Rust'])
+        other = Experience.objects.exclude(pk=self.experience.pk).get()
+        self.assertSetEqual(set(other.skills.all()), {self.skill, self.other_skill})
+        self.assertTrue(Skill.objects.filter(pk=self.skill.pk).exists())
+
+    def test_skill_form_supports_deferred_save(self):
+        from .forms import ExperienceForm
+        form = ExperienceForm(data={**self.data, 'skills': 'Rust'})
+        self.assertTrue(form.is_valid(), form.errors)
+        instance = form.save(commit=False)
+        self.assertFalse(Skill.objects.filter(name='Rust').exists())
+        instance.save()
+        form.save_m2m()
+        self.assertEqual(list(instance.skills.values_list('name', flat=True)), ['Rust'])
+
+    def test_no_separate_skill_section(self):
+        response = self.client.get(reverse('main:show_experience'))
+        self.assertNotContains(response, 'href="/skills/"')
+        self.assertEqual(self.client.get('/skills/').status_code, 404)
+
+    def test_mutations_require_csrf_and_reject_unsupported_methods(self):
+        from django.test import Client
+        client = Client(enforce_csrf_checks=True)
+        for url in (reverse('main:create_experience'),
+                    reverse('main:edit_experience', args=[self.experience.pk]),
+                    reverse('main:delete_experience', args=[self.experience.pk])):
+            with self.subTest(url=url):
+                self.assertEqual(client.post(url, {}).status_code, 403)
+                self.assertEqual(self.client.delete(url).status_code, 405)
+        self.assertTrue(Experience.objects.filter(pk=self.experience.pk).exists())
