@@ -5,7 +5,7 @@ from django.http import HttpRequest, HttpResponse
 from django.views.decorators.http import require_http_methods
 
 from .models import Experience, Award
-from .forms import AwardForm
+from .forms import AwardForm, ExperienceForm
 
 def index(request):
     context = {
@@ -19,7 +19,8 @@ def index(request):
 def show_experience(request):
     context = {
         'name': 'Rozan',
-        'experience_list': Experience.objects.all(),
+        'experience_list': Experience.objects.prefetch_related('skills').filter(title__icontains=request.GET.get('title', '').strip()),
+        'title_query': request.GET.get('title', '').strip(),
     }
     return render(request, 'main/experience.html', context)
 
@@ -94,3 +95,44 @@ def delete_award(request: HttpRequest, award_id):
         messages.success(request, 'Award successfully deleted!')
 
     return redirect('main:show_awards')
+
+
+def _save_record(request, form_class, instance, label, list_view):
+    form = form_class(request.POST if request.method == 'POST' else None, instance=instance)
+    editing = instance is not None
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, f'{label} successfully {"updated" if editing else "created"}!')
+        return redirect(list_view)
+    return render(request, 'main/record-form.html', {
+        'name': 'Rozan', 'form': form, 'label': label,
+        'editing': editing, 'list_view': list_view,
+    })
+
+
+@require_http_methods(['GET', 'POST'])
+def create_experience(request):
+    return _save_record(request, ExperienceForm, None, 'Experience', 'main:show_experience')
+
+
+@require_http_methods(['GET', 'POST'])
+def edit_experience(request, experience_id):
+    experience = get_object_or_404(Experience, pk=experience_id)
+    return _save_record(request, ExperienceForm, experience, 'Experience', 'main:show_experience')
+
+
+def _delete_record(request, instance, label, list_view):
+    if request.method == 'POST':
+        instance.delete()
+        messages.success(request, f'{label} successfully deleted!')
+        return redirect(list_view)
+    return render(request, 'main/record-delete.html', {
+        'name': 'Rozan', 'record': instance, 'label': label,
+        'list_view': list_view,
+    })
+
+
+@require_http_methods(['GET', 'POST'])
+def delete_experience(request, experience_id):
+    return _delete_record(request, get_object_or_404(Experience, pk=experience_id),
+                          'Experience', 'main:show_experience')
