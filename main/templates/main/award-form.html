@@ -13,14 +13,17 @@
 <!-- Section: Award Form -->
 <section class="awards">
   <div class="container">
-    <h1>Add New Award</h1>
+    <h1>{% if award %}Edit Award{% else %}Add New Award{% endif %}</h1>
 
     <form
       method="post"
-      action="{% url 'main:create_award' %}"
+      action="{% if award %}{% url 'main:edit_award' award.id %}{% else %}{% url 'main:create_award' %}{% endif %}"
       class="award-form"
     >
       {% csrf_token %}
+      {% for error in form.non_field_errors %}
+      <p class="form-error" role="alert">{{ error }}</p>
+      {% endfor %}
       <!--  -->
       {% for field in form %}
       <div class="form-group">
@@ -32,7 +35,7 @@
         {% endfor %}
       </div>
       {% endfor %}
-      <button type="submit" class="button">Add Award</button>
+      <button type="submit" class="button">{% if award %}Save Changes{% else %}Add Award{% endif %}</button>
       <a href="{% url 'main:show_awards' %}" class="button button-secondary"
         >Cancel</a
       >

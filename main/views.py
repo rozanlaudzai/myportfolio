@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.core import serializers
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpRequest, HttpResponse
+from django.views.decorators.http import require_http_methods
 
 from .models import Experience, Award
 from .forms import AwardForm
@@ -52,6 +53,26 @@ def create_award(request: HttpRequest):
     context = {
         'name': 'Rozan',
         'form': form,
+    }
+    return render(request, 'main/award-form.html', context)
+
+@require_http_methods(['GET', 'POST'])
+def edit_award(request: HttpRequest, award_id):
+    award = get_object_or_404(Award, pk=award_id)
+    form = AwardForm(
+        request.POST if request.method == 'POST' else None,
+        instance=award,
+    )
+
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Award successfully updated!')
+        return redirect('main:show_awards')
+
+    context = {
+        'name': 'Rozan',
+        'form': form,
+        'award': award,
     }
     return render(request, 'main/award-form.html', context)
 

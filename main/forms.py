@@ -33,13 +33,14 @@ class AwardForm(forms.ModelForm):
                     'maxlength': 255,
                 }
             ),
-            'description': forms.TextInput(
+            'description': forms.Textarea(
                 attrs={
                     'placeholder': labels.get('description', ''),
                     'rows': 3,
                 }
             ),
             'awarded_at': forms.DateInput(
+                format='%Y-%m-%d',
                 attrs={
                     'type': 'date',
                 }
