@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block meta %}
+<link rel="stylesheet" href="{% static 'css/main/awards.css' %}" />
+<link rel="stylesheet" href="{% static 'css/main/records.css' %}" />
+{% endblock %}
+{% block content %}
+<section class="awards">
+  <div class="container">
+    <h1>{% if editing %}Edit{% else %}Add New{% endif %} {{ label }}</h1>
+    <form method="post" class="award-form">
+      {% csrf_token %}
+      {% for error in form.non_field_errors %}<p class="form-error" role="alert">{{ error }}</p>{% endfor %}
+      {% for field in form %}
+      <div class="form-group">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="form-help" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</p>{% endif %}
+        {% for error in field.errors %}<p class="form-error" role="alert">{{ error }}</p>{% endfor %}
+      </div>
+      {% endfor %}
+      <div class="record-actions">
+        <button type="submit" class="button">{% if editing %}Save Changes{% else %}Add {{ label }}{% endif %}</button>
+        <a href="{% url list_view %}" class="button button-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

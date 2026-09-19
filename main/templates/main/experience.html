@@ -6,6 +6,8 @@
 <!--  -->
 {% block meta %}
 <link rel="stylesheet" href="{% static 'css/main/experience.css' %}" />
+<link rel="stylesheet" href="{% static 'css/main/awards.css' %}" />
+<link rel="stylesheet" href="{% static 'css/main/records.css' %}" />
 {% endblock meta %}
 
 <!--  -->
@@ -15,27 +17,35 @@
   <div class="container">
     <div class="experience-heading">
       <h2 id="experience-title">Experience</h2>
+      <a href="{% url 'main:create_experience' %}" class="button">Add Experience</a>
     </div>
+    {% for message in messages %}<p class="award-message" role="status">{{ message }}</p>{% endfor %}
+    <form method="get" class="award-search">
+      <input type="search" name="title" value="{{ title_query }}" placeholder="Search by experience title" aria-label="Search by experience title" class="award-search__input" />
+      <button type="submit" class="button">Find</button>
+    </form>
     <ol class="experience-list">
       {% for experience in experience_list %}
       <li class="experience-item">
         <span class="experience-number" aria-hidden="true"></span>
-        <article class="experience-card" aria-labelledby="role-01">
+        <article class="experience-card" aria-labelledby="role-{{ experience.id }}">
           <div class="experience-card-header">
             <div class="experience-logo experience-logo-large">
+              {% if experience.company_logo %}
               <img
-                src="{% static experience.company_logo %}"
+                src="{% if experience.company_logo|slice:':7' == 'http://' or experience.company_logo|slice:':8' == 'https://' %}{{ experience.company_logo }}{% else %}{% static experience.company_logo %}{% endif %}"
                 alt="{{ experience.company_name }} logo"
                 width="72"
                 height="72"
                 loading="lazy"
               />
+              {% endif %}
             </div>
             <div class="experience-details">
               <p class="experience-organization">
                 {{ experience.company_name }}
               </p>
-              <h3 id="role-01">{{ experience.title }}</h3>
+              <h3 id="role-{{ experience.id }}">{{ experience.title }}</h3>
             </div>
             <p class="experience-date">
               <time>{{ experience.started_at|date:"M Y" }}</time>
@@ -56,10 +66,14 @@
               {% endfor %}
             </ul>
           </div>
+          <div class="record-actions">
+            <a href="{% url 'main:edit_experience' experience.id %}" class="button button-secondary" aria-label="Edit {{ experience.title }}">Edit</a>
+            <a href="{% url 'main:delete_experience' experience.id %}" class="button button-danger" aria-label="Delete {{ experience.title }}">Delete</a>
+          </div>
         </article>
       </li>
       {% empty %}
-      <li class="empty-state">No experience added yet.</li>
+      <li class="empty-state">{% if title_query %}No experiences found.{% else %}No experience added yet.{% endif %}</li>
       {% endfor %}
     </ol>
   </div>

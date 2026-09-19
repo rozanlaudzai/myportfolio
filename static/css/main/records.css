@@ -1,0 +1,11 @@
+.record-heading,
+.record-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.record-heading { justify-content: space-between; }
+.record-actions { margin-top: 1rem; }
+.form-help { color: var(--text-muted); margin-top: 0.5rem; }
+.button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
