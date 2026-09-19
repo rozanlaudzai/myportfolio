@@ -151,3 +151,107 @@ class AwardTest(TestCase):
             'First line<br>&lt;script&gt;alert(&quot;test&quot;)&lt;/script&gt;',
         )
         self.assertNotContains(response, '<script>')
+
+class AwardEditTest(TestCase):
+    def setUp(self):
+        self.award = Award.objects.create(
+            title='Original Award',
+            issuer='Original Issuer',
+            description='First line\nSecond line',
+            awarded_at=date(2026, 8, 1),
+        )
+        self.url = reverse('main:edit_award', args=[self.award.pk])
+        self.data = {
+            'title': 'Updated Award',
+            'issuer': 'Updated Issuer',
+            'description': 'Updated description\nAnother line',
+            'awarded_at': '2026-09-19',
+        }
+
+    def test_edit_link_on_awards_page(self):
+        response = self.client.get(reverse('main:show_awards'))
+
+        self.assertContains(response, f'href="{self.url}"')
+
+    def test_edit_form_is_prefilled(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'main/award-form.html')
+        self.assertContains(response, 'Edit Award')
+        self.assertContains(response, 'Save Changes')
+        self.assertContains(response, f'action="{self.url}"')
+        self.assertContains(response, 'value="2026-08-01"')
+        form = response.context['form']
+        self.assertFalse(form.is_bound)
+        for field in ('title', 'issuer', 'description', 'awarded_at'):
+            self.assertEqual(form.initial[field], getattr(self.award, field))
+        self.award.refresh_from_db()
+        self.assertEqual(self.award.title, 'Original Award')
+
+    def test_valid_edit_updates_existing_award(self):
+        other = Award.objects.create(
+            title='Other Award', issuer='Other Issuer',
+            description='Unchanged', awarded_at=date(2025, 1, 1),
+        )
+        response = self.client.post(self.url, self.data, follow=True)
+
+        self.assertRedirects(response, reverse('main:show_awards'))
+        self.assertContains(response, 'Award successfully updated!')
+        self.award.refresh_from_db()
+        for field in ('title', 'issuer', 'description'):
+            self.assertEqual(getattr(self.award, field), self.data[field])
+        self.assertEqual(self.award.awarded_at, date(2026, 9, 19))
+        self.assertEqual(Award.objects.count(), 2)
+        other.refresh_from_db()
+        self.assertEqual(other.title, 'Other Award')
+
+    def test_invalid_edit_does_not_change_award(self):
+        for invalid_data in ({}, {**self.data, 'title': ''},
+                             {**self.data, 'awarded_at': 'not-a-date'}):
+            with self.subTest(data=invalid_data):
+                response = self.client.post(self.url, invalid_data)
+
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(response.context['form'].is_bound)
+                self.assertTrue(response.context['form'].errors)
+                self.assertContains(response, 'form-error')
+                self.assertContains(response, f'action="{self.url}"')
+                self.award.refresh_from_db()
+                self.assertEqual(self.award.title, 'Original Award')
+                self.assertEqual(self.award.issuer, 'Original Issuer')
+                self.assertEqual(self.award.description, 'First line\nSecond line')
+                self.assertEqual(self.award.awarded_at, date(2026, 8, 1))
+                self.assertEqual(Award.objects.count(), 1)
+        self.assertEqual(response.context['form']['title'].value(), 'Updated Award')
+
+    def test_missing_award_returns_404(self):
+        self.award.delete()
+
+        self.assertEqual(self.client.get(self.url).status_code, 404)
+        self.assertEqual(self.client.post(self.url, self.data).status_code, 404)
+
+    def test_unsupported_method_returns_405(self):
+        self.assertEqual(self.client.delete(self.url).status_code, 405)
+        self.assertTrue(Award.objects.filter(pk=self.award.pk).exists())
+
+    def test_edit_requires_csrf_token(self):
+        from django.test import Client
+
+        response = Client(enforce_csrf_checks=True).post(self.url, self.data)
+
+        self.assertEqual(response.status_code, 403)
+        self.award.refresh_from_db()
+        self.assertEqual(self.award.title, 'Original Award')
+
+    def test_shared_form_still_creates_awards(self):
+        url = reverse('main:create_award')
+        response = self.client.get(url)
+
+        self.assertContains(response, 'Add New Award')
+        self.assertContains(response, f'action="{url}"')
+        response = self.client.post(url, self.data)
+
+        self.assertRedirects(response, reverse('main:show_awards'))
+        self.assertEqual(Award.objects.count(), 2)
+        self.assertTrue(Award.objects.filter(title='Updated Award').exists())
