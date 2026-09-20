@@ -397,3 +397,54 @@ class ExperienceCrudTest(TestCase):
                 self.assertEqual(client.post(url, {}).status_code, 403)
                 self.assertEqual(self.client.delete(url).status_code, 405)
         self.assertTrue(Experience.objects.filter(pk=self.experience.pk).exists())
+
+class ExperienceJsonTest(TestCase):
+    def setUp(self):
+        self.skill = Skill.objects.create(name='Django')
+        self.experience = Experience.objects.create(
+            title='Developer', company_name='Example',
+            description='Built applications.', started_at=date(2026, 1, 1),
+        )
+        self.experience.skills.add(self.skill)
+        self.url = reverse('main:get_experience_json')
+
+    def test_json_contains_fields_and_skill_ids(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(response.json(), [{
+            'model': 'main.experience',
+            'pk': str(self.experience.pk),
+            'fields': {
+                'title': 'Developer', 'company_name': 'Example',
+                'company_logo': '', 'description': 'Built applications.',
+                'started_at': '2026-01-01', 'ended_at': None,
+                'skills': [str(self.skill.pk)],
+            },
+        }])
+
+    def test_json_ordering_and_title_filter(self):
+        newer = Experience.objects.create(
+            title='Designer', company_name='Example', description='Design work.',
+            started_at=date(2026, 9, 1), ended_at=date(2026, 9, 20),
+        )
+        self.assertEqual([item['pk'] for item in self.client.get(self.url).json()],
+                         [str(newer.pk), str(self.experience.pk)])
+        response = self.client.get(self.url, {'title': ' DEVELOP '})
+        self.assertEqual([item['pk'] for item in response.json()], [str(self.experience.pk)])
+        self.assertEqual(self.client.get(self.url, {'title': 'missing'}).json(), [])
+        Experience.objects.all().delete()
+        self.assertEqual(self.client.get(self.url).json(), [])
+
+    def test_page_uses_json_and_keeps_skills(self):
+        from unittest.mock import patch
+        from .views import get_experience_json
+
+        with patch('main.views.get_experience_json', wraps=get_experience_json) as get_json:
+            response = self.client.get(reverse('main:show_experience'), {'title': 'develop'})
+
+        get_json.assert_called_once()
+        self.assertContains(response, 'Developer')
+        self.assertContains(response, '<li>Django</li>', html=True)
+        self.assertEqual(response.context['experience_list'], [self.experience])

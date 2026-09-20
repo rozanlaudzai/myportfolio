@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.core import serializers
+from django.db.models import prefetch_related_objects
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.http import require_http_methods
@@ -16,10 +17,18 @@ def index(request):
     }
     return render(request, 'main/index.html', context)
 
-def show_experience(request):
+def show_experience(request: HttpRequest):
+    json_response = get_experience_json(request)
+    experiences = serializers.deserialize(
+        'json',
+        json_response.content.decode('utf-8'),
+    )
+    experiences = [experience.object for experience in experiences]
+    prefetch_related_objects(experiences, 'skills')
+
     context = {
         'name': 'Rozan',
-        'experience_list': Experience.objects.prefetch_related('skills').filter(title__icontains=request.GET.get('title', '').strip()),
+        'experience_list': experiences,
         'title_query': request.GET.get('title', '').strip(),
     }
     return render(request, 'main/experience.html', context)
@@ -76,6 +85,16 @@ def edit_award(request: HttpRequest, award_id):
         'award': award,
     }
     return render(request, 'main/award-form.html', context)
+
+def get_experience_json(request: HttpRequest):
+    title_query = request.GET.get('title', '').strip()
+    experiences = Experience.objects.prefetch_related('skills').all()
+
+    if title_query:
+        experiences = experiences.filter(title__icontains=title_query)
+
+    experiences_json = serializers.serialize('json', experiences)
+    return HttpResponse(experiences_json, content_type='application/json')
 
 def get_awards_json(request: HttpRequest):
     title_query = request.GET.get('title', '').strip()
