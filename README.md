@@ -84,15 +84,30 @@ python3 manage.py runserver
 
 3. `makemigrations` untuk mencatat migrations dalam file python (belum applied ke db) di folder `/migrations`. `migrate` membaca files di `/migrations` untuk di-execute di db.
 
+### Tugas 3
+
+1. 
+
 ## AI Disclosure
 
-Sejauh ini, saya memakai Codex GPT-6 Astra untuk:
+AI Model: Codex GPT-6 Astra.
 
+### Tugas 1
+
+- Chat link: https://chatgpt.com/s/cx_6a9e91d814408191b0ad0bf551234c43
 - Improve dokumentasi di `README.md` yang telah saya tulis.
 - CSS styling untuk experience section: responsive logo size, experience timeline, etc.
 - Bertanya apa perbedaan `<section>`, `<article>`, dan `<aside>`.
-- Assignment 1's chat link: https://chatgpt.com/s/cx_6a9e91d814408191b0ad0bf551234c43
+
+### Tugas 2
+
+- Chat link: https://chatgpt.com/s/cx_6aa823ffd7708191affbf11337d3726b
 - Membuat awards HTML page sesuai dengan the other page patterns serta melakukan CSS styling-nya.
 - Add tests for award
 - Update tests for current experience model
-- Assignment 2's chat link: https://chatgpt.com/s/cx_6aa823ffd7708191affbf11337d3726b
+
+### Tugas 3
+
+- Chat link: https://chatgpt.com/s/cx_6aafa4691e348191866162f85d729112
+- Added award editing. Each award now has an Edit button opening a prefilled form with Save Changes and Cancel.
+- Added CRUD for Experience and Skill, includes create, search, edit, and delete confirmation pages.
