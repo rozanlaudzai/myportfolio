@@ -86,7 +86,11 @@ python3 manage.py runserver
 
 ### Tugas 3
 
-1. 
+1. Dengan `ModelForm`, fields pada form dapat dibuat secara otomatis berdasarkan field yang terdapat pada model. Selain itu, `ModelForm` juga menyediakan validasi data berdasarkan tipe dan aturan field pada model. `{% csrf_token %}` digunakan untuk melindungi form dari cross-site request forgery (CSRF) attack. CSRF attack terjadi ketika pengguna yang sudah authenticated dibuat mengirimkan request ke suatu website tanpa sepengetahuannya. `{% csrf_token %}` menghasilkan token unik yang kemudian dikirim bersama form. Ketika form dikirim, Django akan memeriksa token tersebut untuk memastikan bahwa request berasal dari form yang sah.
+
+2. JSON formatnya lebih compact daripada XML. Selain itu, JSON lebih human-readable karena menggunakan struktur key-value dan array.
+
+3. Client kirim request $\to$ Django ambil model object sesuai yang diinginkan request $\to$ Django kirim response dalam bentuk JSON string (menggunakan `serializers.serialize("json", data)`) agar frontend mudah untuk consume API tersebut.
 
 ## AI Disclosure
 
