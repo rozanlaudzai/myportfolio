@@ -216,3 +216,7 @@ def login_user(request: HttpRequest):
     }
     return render(request, 'main/login.html', context)
 
+
+def logout_user(request):
+    logout(request)
+    return redirect('main:index')
