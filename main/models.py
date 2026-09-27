@@ -1,6 +1,7 @@
 from django.db import models
 import uuid
 
+
 class Skill(models.Model):
     id = models.UUIDField(
         primary_key=True,
@@ -14,6 +15,7 @@ class Skill(models.Model):
 
     def __str__(self):
         return self.name
+
 
 class Experience(models.Model):
     id = models.UUIDField(
@@ -42,6 +44,7 @@ class Experience(models.Model):
     @property
     def is_ongoing(self):
         return self.ended_at is None
+
 
 class Award(models.Model):
     id = models.UUIDField(

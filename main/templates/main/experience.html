@@ -33,7 +33,7 @@
             <div class="experience-logo experience-logo-large">
               {% if experience.company_logo %}
               <img
-                src="{% if experience.company_logo|slice:':7' == 'http://' or experience.company_logo|slice:':8' == 'https://' %}{{ experience.company_logo }}{% else %}{% static experience.company_logo %}{% endif %}"
+                src="{{ experience.company_logo }}"
                 alt="{{ experience.company_name }} logo"
                 width="72"
                 height="72"

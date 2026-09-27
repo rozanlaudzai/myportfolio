@@ -48,6 +48,7 @@ class AwardForm(forms.ModelForm):
             ),
         }
 
+
 class ExperienceForm(forms.ModelForm):
     skills = forms.CharField(
         required=False,

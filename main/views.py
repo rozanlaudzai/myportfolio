@@ -17,6 +17,7 @@ def index(request):
     }
     return render(request, 'main/index.html', context)
 
+
 def show_experience(request: HttpRequest):
     json_response = get_experience_json(request)
     experiences = serializers.deserialize(
@@ -32,6 +33,7 @@ def show_experience(request: HttpRequest):
         'title_query': request.GET.get('title', '').strip(),
     }
     return render(request, 'main/experience.html', context)
+
 
 def show_awards(request: HttpRequest):
     json_response = get_awards_json(request)
@@ -52,6 +54,7 @@ def show_awards(request: HttpRequest):
     }
     return render(request, 'main/awards.html', context)
 
+
 def create_award(request: HttpRequest):
     form = AwardForm(request.POST or None)
 
@@ -65,6 +68,7 @@ def create_award(request: HttpRequest):
         'form': form,
     }
     return render(request, 'main/award-form.html', context)
+
 
 @require_http_methods(['GET', 'POST'])
 def edit_award(request: HttpRequest, award_id):
@@ -86,6 +90,7 @@ def edit_award(request: HttpRequest, award_id):
     }
     return render(request, 'main/award-form.html', context)
 
+
 def get_experience_json(request: HttpRequest):
     title_query = request.GET.get('title', '').strip()
     experiences = Experience.objects.prefetch_related('skills').all()
@@ -96,6 +101,7 @@ def get_experience_json(request: HttpRequest):
     experiences_json = serializers.serialize('json', experiences)
     return HttpResponse(experiences_json, content_type='application/json')
 
+
 def get_awards_json(request: HttpRequest):
     title_query = request.GET.get('title', '').strip()
     awards = Award.objects.all()
@@ -105,6 +111,7 @@ def get_awards_json(request: HttpRequest):
 
     awards_json = serializers.serialize('json', awards)
     return HttpResponse(awards_json, content_type='application/json')
+
 
 def delete_award(request: HttpRequest, award_id):
     award = get_object_or_404(Award, pk=award_id)
