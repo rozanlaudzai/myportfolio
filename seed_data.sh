@@ -16,7 +16,7 @@ redis = Skill.objects.create(name='Redis')
 pelihara = Experience.objects.create(
     title='Software Engineer Intern',
     company_name='Pelihara',
-    company_logo='img/pelihara-logo.webp',
+    company_logo='https://drive.google.com/thumbnail?id=1nd-lC3TVrF0J6jeU55_dL-ohk5yHxsMx&sz=w1000',
     description='Developed a pet clinic management app.',
     started_at=date(2026, 6, 25),
     ended_at=date(2026, 9, 13),
@@ -33,7 +33,7 @@ prog_fund = Skill.objects.create(name='Programming Fundamentals')
 labschool = Experience.objects.create(
     title='Competitive Programming Tutor',
     company_name='SMA Labschool Ciracas',
-    company_logo='img/labschool-ciracas-logo.webp',
+    company_logo='https://drive.google.com/thumbnail?id=152Sk-ibms2lJhnHKWX95P73RYbGwbP56&sz=w1000',
     description='Taught foundational programming concepts in C++, from basic syntax to recursion.',
     started_at=date(2026, 6, 13),
     ended_at=date(2026, 6, 13),
