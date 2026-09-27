@@ -1,13 +1,29 @@
 from django.contrib import messages
 from django.core import serializers
 from django.db.models import prefetch_related_objects
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpRequest, HttpResponse
+from django.shortcuts import (
+    render,
+    redirect,
+    get_object_or_404,
+)
+from django.http import (
+    HttpRequest,
+    HttpResponse,
+)
 from django.views.decorators.http import require_http_methods
+from django.contrib.auth import (
+    login,
+    logout,
+)
+from django.contrib.auth.forms import (
+    UserCreationForm,
+    AuthenticationForm,
+)
 
 from .models import Experience, Award
 from .forms import AwardForm, ExperienceForm
 
+@require_http_methods(['GET'])
 def index(request):
     context = {
         'name': 'Rozan',
@@ -18,6 +34,7 @@ def index(request):
     return render(request, 'main/index.html', context)
 
 
+@require_http_methods(['GET'])
 def show_experience(request: HttpRequest):
     json_response = get_experience_json(request)
     experiences = serializers.deserialize(
@@ -35,6 +52,7 @@ def show_experience(request: HttpRequest):
     return render(request, 'main/experience.html', context)
 
 
+@require_http_methods(['GET'])
 def show_awards(request: HttpRequest):
     json_response = get_awards_json(request)
 
@@ -55,6 +73,7 @@ def show_awards(request: HttpRequest):
     return render(request, 'main/awards.html', context)
 
 
+@require_http_methods(['GET', 'POST'])
 def create_award(request: HttpRequest):
     form = AwardForm(request.POST or None)
 
@@ -91,6 +110,7 @@ def edit_award(request: HttpRequest, award_id):
     return render(request, 'main/award-form.html', context)
 
 
+@require_http_methods(['GET'])
 def get_experience_json(request: HttpRequest):
     title_query = request.GET.get('title', '').strip()
     experiences = Experience.objects.prefetch_related('skills').all()
@@ -102,6 +122,7 @@ def get_experience_json(request: HttpRequest):
     return HttpResponse(experiences_json, content_type='application/json')
 
 
+@require_http_methods(['GET'])
 def get_awards_json(request: HttpRequest):
     title_query = request.GET.get('title', '').strip()
     awards = Award.objects.all()
@@ -113,6 +134,7 @@ def get_awards_json(request: HttpRequest):
     return HttpResponse(awards_json, content_type='application/json')
 
 
+@require_http_methods(['GET', 'POST'])
 def delete_award(request: HttpRequest, award_id):
     award = get_object_or_404(Award, pk=award_id)
 
@@ -162,3 +184,18 @@ def _delete_record(request, instance, label, list_view):
 def delete_experience(request, experience_id):
     return _delete_record(request, get_object_or_404(Experience, pk=experience_id),
                           'Experience', 'main:show_experience')
+
+
+def register(request: HttpRequest):
+    form = UserCreationForm(request.POST or None)
+
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, "Account has been created successfully. Let's login!")
+        return redirect('main:login')
+
+    context = {
+        'name': 'Rozan',
+        'form': form,
+    }
+    return render(request, 'main/register.html', context)

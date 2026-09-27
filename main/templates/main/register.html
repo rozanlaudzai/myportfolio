@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+<!--  -->
+{% load static %}
+
+<!--  -->
+{% block meta %}
+<title>Register - {{ name }}</title>
+<link rel="stylesheet" href="{% static 'css/main/experince.css' %}" />
+<link rel="stylesheet" href="{% static 'css/main/awards.css' %}" />
+{% endblock meta %}
+
+<!--  -->
+{% block content %}
+<section class="experience-section">
+  <div class="container">
+    <h1>Create an Account</h1>
+    <form method="post" action="{% url 'main:register' %}" class="award-form">
+      {% csrf_token %}
+      <!--  -->
+      {% for error in form.non_field_errors %}
+      <p class="form-error">{{ error }}</p>
+      {% endfor %}
+      <!--  -->
+      {% for field in form %}
+      <div class="form-group">
+        <label for="{{ field.id_for_label }}"> {{ field.label }} </label>
+        {{ field }}
+        <!--  -->
+        {% if field.help_text %}
+        <div class="form-help">{{ field.help_text }}</div>
+        {% endif %}
+        <!--  -->
+        {% for error in field.errors %}
+        <p class="form-error">{{ error }}</p>
+        {% endfor %}
+      </div>
+      {% endfor %}
+      <button type="submit" class="button">Register</button>
+    </form>
+    <p>
+      Already have an account? <a href="{% url 'main:login' %}">Login here</a>.
+    </p>
+  </div>
+</section>
+{% endblock content %}
