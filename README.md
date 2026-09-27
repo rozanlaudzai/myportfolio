@@ -8,7 +8,11 @@
 
 ## Overview
 
-A personal portfolio website built with Django.
+A personal portfolio website built with Django as part of the PBP course at Universitas Indonesia.
+
+## Deployment
+
+https://rozan-laudzai-myportfolio.pws.cs.ui.ac.id/
 
 ## Environments
 
@@ -21,10 +25,6 @@ A personal portfolio website built with Django.
 ### Production
 
 - Pacil Web Service (does not support uv, bruh)
-
-## Deployment
-
-https://rozan-laudzai-myportfolio.pws.cs.ui.ac.id/
 
 ## Local Setup
 
@@ -45,26 +45,48 @@ python3 -m pip install -r requirements.txt
 3. Create a `.env` file:
 
 ```
-DB_USER
-DB_PASSWORD
-DB_HOST
-DB_PORT
-DB_NAME
-MY_DOMAIN
-PRODUCTION
-SCHEMA
-SECRET_KEY
+DB_USER=
+DB_PASSWORD=
+DB_HOST=
+DB_PORT=
+DB_NAME=
+MY_DOMAIN=
+PRODUCTION=
+SCHEMA=
+SECRET_KEY=
 ```
 
 Local development uses SQLite by default. PostgreSQL is used when `PRODUCTION=True`. In that case, also configure `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, and `DB_NAME` in `.env`.
 
-4. Run the following command
+4. Apply database migrations
+
+```bash
+python3 manage.py makemigrations
+
+python3 manage.py migrate
+```
+
+5. Start the development server
 
 ```bash
 python3 manage.py runserver
 ```
 
-5. Open `http://127.0.0.1:8000` on your browser.
+Open `http://127.0.0.1:8000` on your browser.
+
+## Testing
+
+Run the test suite with coverage:
+
+```bash
+coverage run --source='.' manage.py test
+```
+
+View the coverage report:
+
+```bash
+coverage report
+```
 
 ## Pertanyaan Reflektif
 
