@@ -186,6 +186,7 @@ def delete_experience(request, experience_id):
                           'Experience', 'main:show_experience')
 
 
+@require_http_methods(['GET', 'POST'])
 def register(request: HttpRequest):
     form = UserCreationForm(request.POST or None)
 
@@ -199,3 +200,19 @@ def register(request: HttpRequest):
         'form': form,
     }
     return render(request, 'main/register.html', context)
+
+
+@require_http_methods(['GET', 'POST'])
+def login_user(request: HttpRequest):
+    form = AuthenticationForm(request, data=request.POST or None)
+
+    if request.method == 'POST' and form.is_valid():
+        login(request, form.get_user())
+        return redirect('main:index')
+
+    context = {
+        'name': 'Rozan',
+        'form': form,
+    }
+    return render(request, 'main/login.html', context)
+
