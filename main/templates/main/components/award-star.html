@@ -1,0 +1,16 @@
+<form
+  method="post"
+  action="{% url 'main:toggle_star' award.id %}"
+  class="star-form"
+>
+  {% csrf_token %}
+  <button
+    type="submit"
+    class="button button-star{% if user in award.starred_by.all %} is-starred{% endif %}"
+    title="{% if award.starred_by.all %}Starred by {{ award.starred_by.all|join:', ' }}{% else %}Be the first to star this award{% endif %}"
+  >
+    <span aria-hidden="true">★</span>
+    {% if user in award.starred_by.all %}Unstar{% else %}Star{% endif %}
+    <span class="star-count">{{ award.starred_by.count }}</span>
+  </button>
+</form>

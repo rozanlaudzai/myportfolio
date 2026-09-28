@@ -23,8 +23,18 @@ from django.contrib.auth.forms import (
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 
-from .models import Experience, Award
-from .forms import AwardForm, ExperienceForm
+from .models import (
+    Experience,
+    Award,
+)
+from .forms import (
+    AwardForm,
+    ExperienceForm,
+)
+
+
+login_url = '/login/'
+
 
 @require_http_methods(['GET'])
 def index(request: HttpRequest):
@@ -78,7 +88,7 @@ def show_awards(request: HttpRequest):
     return render(request, 'main/awards.html', context)
 
 
-@login_required(login_url='/login/')
+@login_required(login_url=login_url)
 @require_http_methods(['GET', 'POST'])
 def create_award(request: HttpRequest):
     if not request.user.is_superuser:
@@ -98,7 +108,7 @@ def create_award(request: HttpRequest):
     return render(request, 'main/award-form.html', context)
 
 
-@login_required(login_url='/login/')
+@login_required(login_url=login_url)
 @require_http_methods(['GET', 'POST'])
 def edit_award(request: HttpRequest, award_id):
     if not request.user.is_superuser:
@@ -143,11 +153,11 @@ def get_awards_json(request: HttpRequest):
     if title_query:
         awards = awards.filter(title__icontains=title_query)
 
-    awards_json = serializers.serialize('json', awards)
+    awards_json = serializers.serialize('json', awards, use_natural_foreign_keys=True)
     return HttpResponse(awards_json, content_type='application/json')
 
 
-@login_required(login_url='/login/')
+@login_required(login_url=login_url)
 @require_http_methods(['GET', 'POST'])
 def delete_award(request: HttpRequest, award_id):
     if not request.user.is_superuser:
@@ -162,7 +172,7 @@ def delete_award(request: HttpRequest, award_id):
     return redirect('main:show_awards')
 
 
-@login_required(login_url='/login/')
+@login_required(login_url=login_url)
 @require_http_methods(['GET', 'POST'])
 def _save_record(request: HttpRequest, form_class, instance, label, list_view):
     if not request.user.is_superuser:
@@ -180,7 +190,7 @@ def _save_record(request: HttpRequest, form_class, instance, label, list_view):
     })
 
 
-@login_required(login_url='/login/')
+@login_required(login_url=login_url)
 @require_http_methods(['GET', 'POST'])
 def create_experience(request: HttpRequest):
     if not request.user.is_superuser:
@@ -189,7 +199,7 @@ def create_experience(request: HttpRequest):
     return _save_record(request, ExperienceForm, None, 'Experience', 'main:show_experience')
 
 
-@login_required(login_url='/login/')
+@login_required(login_url=login_url)
 @require_http_methods(['GET', 'POST'])
 def edit_experience(request: HttpRequest, experience_id):
     if not request.user.is_superuser:
@@ -199,7 +209,7 @@ def edit_experience(request: HttpRequest, experience_id):
     return _save_record(request, ExperienceForm, experience, 'Experience', 'main:show_experience')
 
 
-@login_required(login_url='/login/')
+@login_required(login_url=login_url)
 @require_http_methods(['GET', 'POST'])
 def _delete_record(request: HttpRequest, instance, label, list_view):
     if not request.user.is_superuser:
@@ -215,7 +225,7 @@ def _delete_record(request: HttpRequest, instance, label, list_view):
     })
 
 
-@login_required(login_url='/login/')
+@login_required(login_url=login_url)
 @require_http_methods(['GET', 'POST'])
 def delete_experience(request: HttpRequest, experience_id):
     if not request.user.is_superuser:
@@ -264,3 +274,19 @@ def logout_user(request):
     response = redirect('main:index')
     response.delete_cookie('last_login')
     return response
+
+
+@login_required(login_url=login_url)
+def toggle_star(request: HttpRequest, award_id):
+    award = get_object_or_404(Award, pk=award_id)
+
+    if request.method == 'POST':
+        # Kalau akun ini sudah pernah memberi star, batalkan star-nya.
+        # Kalau belum, tambahkan star.
+        if request.user in award.starred_by.all():
+            award.starred_by.remove(request.user)
+        else:
+            award.starred_by.add(request.user)
+
+    return redirect('main:show_awards')
+
