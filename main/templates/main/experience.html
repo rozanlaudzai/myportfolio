@@ -17,7 +17,9 @@
   <div class="container">
     <div class="experience-heading">
       <h2 id="experience-title">Experience</h2>
+      {% if user.is_superuser %}
       <a href="{% url 'main:create_experience' %}" class="button">Add Experience</a>
+      {% endif %}
     </div>
     {% for message in messages %}<p class="award-message" role="status">{{ message }}</p>{% endfor %}
     <form method="get" class="award-search">
@@ -66,10 +68,12 @@
               {% endfor %}
             </ul>
           </div>
+          {% if user.is_superuser %}
           <div class="record-actions">
             <a href="{% url 'main:edit_experience' experience.id %}" class="button button-secondary" aria-label="Edit {{ experience.title }}">Edit</a>
             <a href="{% url 'main:delete_experience' experience.id %}" class="button button-danger" aria-label="Delete {{ experience.title }}">Delete</a>
           </div>
+          {% endif %}
         </article>
       </li>
       {% empty %}

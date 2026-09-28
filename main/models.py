@@ -1,5 +1,6 @@
 from django.db import models
 import uuid
+from django.contrib.auth.models import User
 
 
 class Skill(models.Model):
@@ -56,6 +57,11 @@ class Award(models.Model):
     issuer = models.CharField(max_length=255)
     description = models.TextField()
     awarded_at = models.DateField()
+    starred_by = models.ManyToManyField(
+        User,
+        related_name='starred_award',
+        blank=True,
+    )
 
     class Meta:
         ordering = ['-awarded_at', 'title']

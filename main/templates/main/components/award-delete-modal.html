@@ -6,7 +6,7 @@
     aria-label="Delete {{ award.title }}"
     title="Delete Award"
   >
-    Delete Award
+    Delete
   </button>
 </p>
 <div
@@ -34,9 +34,9 @@
     >
       ×
     </button>
-    <h2 id="delete-award-title-{{ award.id }}">Hapus Award?</h2>
+    <h2 id="delete-award-title-{{ award.id }}">Delete Award?</h2>
     <p>
-      Apakah Anda yakin ingin menghapus
+      Are you sure you want to delete
       <strong>{{ award.title }}</strong>?
     </p>
     <div class="award-delete-modal__actions">
@@ -46,11 +46,11 @@
         popovertarget="delete-award-{{ award.id }}"
         popovertargetaction="hide"
       >
-        Batal
+        Cancel
       </button>
       <form method="post" action="{% url 'main:delete_award' award.id %}">
         {% csrf_token %}
-        <button type="submit" class="button button-danger">Ya, Hapus</button>
+        <button type="submit" class="button button-danger">Yes, delete it</button>
       </form>
     </div>
   </div>
