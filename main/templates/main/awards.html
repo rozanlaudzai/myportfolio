@@ -15,9 +15,11 @@
   <div class="container">
     <div class="awards-heading">
       <h1 id="awards-title">Awards</h1>
+      {% if user.is_superuser %}
       <a href="{% url 'main:create_award' %}" class="button">
         Add Award
       </a>
+      {% endif %}
     </div>
 
     <!-- search -->
@@ -60,10 +62,12 @@
           </div>
           <p class="award-description">{{ award.description|linebreaksbr }}</p>
           <div class="award-card-actions">
+            {% if user.is_superuser %}
             <div class="award-actions">
               <a href="{% url 'main:edit_award' award.id %}" class="button button-secondary" aria-label="Edit {{ award.title }}">Edit</a>
               {% include 'main/components/award-delete-modal.html' with award=award %}
             </div>
+            {% endif %}
           </div>
         </article>
       </li>

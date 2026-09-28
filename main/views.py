@@ -1,3 +1,4 @@
+import datetime
 from django.contrib import messages
 from django.core import serializers
 from django.db.models import prefetch_related_objects
@@ -19,17 +20,21 @@ from django.contrib.auth.forms import (
     UserCreationForm,
     AuthenticationForm,
 )
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 
 from .models import Experience, Award
 from .forms import AwardForm, ExperienceForm
 
 @require_http_methods(['GET'])
-def index(request):
+def index(request: HttpRequest):
+    last_login = request.COOKIES.get('last_login', 'There is no login session yet.')
     context = {
         'name': 'Rozan',
         'npm': '2506547544',
         'study_program': 'S1 Ilmu Komputer',
-        'bio': 'Go & C++ Enjoyer. Python & JavaScript Hater.'
+        'bio': 'Go & C++ Enjoyer. Python & JavaScript Hater.',
+        'last_login': last_login,
     }
     return render(request, 'main/index.html', context)
 
@@ -73,8 +78,12 @@ def show_awards(request: HttpRequest):
     return render(request, 'main/awards.html', context)
 
 
+@login_required(login_url='/login/')
 @require_http_methods(['GET', 'POST'])
 def create_award(request: HttpRequest):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     form = AwardForm(request.POST or None)
 
     if request.method == 'POST' and form.is_valid():
@@ -89,8 +98,12 @@ def create_award(request: HttpRequest):
     return render(request, 'main/award-form.html', context)
 
 
+@login_required(login_url='/login/')
 @require_http_methods(['GET', 'POST'])
 def edit_award(request: HttpRequest, award_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     award = get_object_or_404(Award, pk=award_id)
     form = AwardForm(
         request.POST if request.method == 'POST' else None,
@@ -134,8 +147,12 @@ def get_awards_json(request: HttpRequest):
     return HttpResponse(awards_json, content_type='application/json')
 
 
+@login_required(login_url='/login/')
 @require_http_methods(['GET', 'POST'])
 def delete_award(request: HttpRequest, award_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     award = get_object_or_404(Award, pk=award_id)
 
     if request.method == 'POST':
@@ -145,7 +162,12 @@ def delete_award(request: HttpRequest, award_id):
     return redirect('main:show_awards')
 
 
-def _save_record(request, form_class, instance, label, list_view):
+@login_required(login_url='/login/')
+@require_http_methods(['GET', 'POST'])
+def _save_record(request: HttpRequest, form_class, instance, label, list_view):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     form = form_class(request.POST if request.method == 'POST' else None, instance=instance)
     editing = instance is not None
     if request.method == 'POST' and form.is_valid():
@@ -158,18 +180,31 @@ def _save_record(request, form_class, instance, label, list_view):
     })
 
 
+@login_required(login_url='/login/')
 @require_http_methods(['GET', 'POST'])
-def create_experience(request):
+def create_experience(request: HttpRequest):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     return _save_record(request, ExperienceForm, None, 'Experience', 'main:show_experience')
 
 
+@login_required(login_url='/login/')
 @require_http_methods(['GET', 'POST'])
-def edit_experience(request, experience_id):
+def edit_experience(request: HttpRequest, experience_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     experience = get_object_or_404(Experience, pk=experience_id)
     return _save_record(request, ExperienceForm, experience, 'Experience', 'main:show_experience')
 
 
-def _delete_record(request, instance, label, list_view):
+@login_required(login_url='/login/')
+@require_http_methods(['GET', 'POST'])
+def _delete_record(request: HttpRequest, instance, label, list_view):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     if request.method == 'POST':
         instance.delete()
         messages.success(request, f'{label} successfully deleted!')
@@ -180,8 +215,12 @@ def _delete_record(request, instance, label, list_view):
     })
 
 
+@login_required(login_url='/login/')
 @require_http_methods(['GET', 'POST'])
-def delete_experience(request, experience_id):
+def delete_experience(request: HttpRequest, experience_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     return _delete_record(request, get_object_or_404(Experience, pk=experience_id),
                           'Experience', 'main:show_experience')
 
@@ -207,8 +246,11 @@ def login_user(request: HttpRequest):
     form = AuthenticationForm(request, data=request.POST or None)
 
     if request.method == 'POST' and form.is_valid():
-        login(request, form.get_user())
-        return redirect('main:index')
+        user = form.get_user()
+        login(request, user)
+        response = redirect('main:index')
+        response.set_cookie('last_login', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        return response
 
     context = {
         'name': 'Rozan',
@@ -219,4 +261,6 @@ def login_user(request: HttpRequest):
 
 def logout_user(request):
     logout(request)
-    return redirect('main:index')
+    response = redirect('main:index')
+    response.delete_cookie('last_login')
+    return response
