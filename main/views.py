@@ -269,6 +269,7 @@ def login_user(request: HttpRequest):
     return render(request, 'main/login.html', context)
 
 
+@require_http_methods(['GET'])
 def logout_user(request):
     logout(request)
     response = redirect('main:index')
@@ -277,6 +278,7 @@ def logout_user(request):
 
 
 @login_required(login_url=login_url)
+@require_http_methods(['GET', 'POST'])
 def toggle_star(request: HttpRequest, award_id):
     award = get_object_or_404(Award, pk=award_id)
 
