@@ -61,13 +61,16 @@
           <p class="award-description">{{ award.description|linebreaksbr }}</p>
           <div class="award-card-actions">
             <div class="award-actions">
-              {% if user.is_superuser %}
+              {% if user.is_superuser or is_editor %}
               <a
                 href="{% url 'main:edit_award' award.id %}"
                 class="button button-secondary"
                 aria-label="Edit {{ award.title }}"
                 >Edit</a
               >
+              {% endif %}
+
+              {% if user.is_superuser %}
               {% include 'main/components/award-delete-modal.html' with award=award %}
               {% endif %}
               {% include 'main/components/award-star.html' with award=award %}

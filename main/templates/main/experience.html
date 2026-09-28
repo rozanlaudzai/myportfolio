@@ -68,12 +68,15 @@
               {% endfor %}
             </ul>
           </div>
-          {% if user.is_superuser %}
           <div class="record-actions">
+            {% if user.is_superuser or is_editor %}
             <a href="{% url 'main:edit_experience' experience.id %}" class="button button-secondary" aria-label="Edit {{ experience.title }}">Edit</a>
+            {% endif %}
+            <!--  -->
+            {% if user.is_superuser %}
             <a href="{% url 'main:delete_experience' experience.id %}" class="button button-danger" aria-label="Delete {{ experience.title }}">Delete</a>
+            {% endif %}
           </div>
-          {% endif %}
         </article>
       </li>
       {% empty %}
