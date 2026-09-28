@@ -36,6 +36,10 @@ from .forms import (
 login_url = '/login/'
 
 
+def is_editor(request: HttpRequest) -> bool:
+    return request.user.groups.filter(name='Editor').exists()
+
+
 @require_http_methods(['GET'])
 def index(request: HttpRequest):
     last_login = request.COOKIES.get('last_login', 'There is no login session yet.')
@@ -63,6 +67,7 @@ def show_experience(request: HttpRequest):
         'name': 'Rozan',
         'experience_list': experiences,
         'title_query': request.GET.get('title', '').strip(),
+        'is_editor': is_editor(request),
     }
     return render(request, 'main/experience.html', context)
 
@@ -84,6 +89,7 @@ def show_awards(request: HttpRequest):
         'name': 'Rozan',
         'award_list': awards,
         'title_query': title_query,
+        'is_editor': is_editor(request),
     }
     return render(request, 'main/awards.html', context)
 
@@ -111,7 +117,7 @@ def create_award(request: HttpRequest):
 @login_required(login_url=login_url)
 @require_http_methods(['GET', 'POST'])
 def edit_award(request: HttpRequest, award_id):
-    if not request.user.is_superuser:
+    if not request.user.is_superuser and not is_editor(request):
         raise PermissionDenied
 
     award = get_object_or_404(Award, pk=award_id)
@@ -175,7 +181,7 @@ def delete_award(request: HttpRequest, award_id):
 @login_required(login_url=login_url)
 @require_http_methods(['GET', 'POST'])
 def _save_record(request: HttpRequest, form_class, instance, label, list_view):
-    if not request.user.is_superuser:
+    if not request.user.is_superuser and not is_editor(request):
         raise PermissionDenied
 
     form = form_class(request.POST if request.method == 'POST' else None, instance=instance)
@@ -202,7 +208,7 @@ def create_experience(request: HttpRequest):
 @login_required(login_url=login_url)
 @require_http_methods(['GET', 'POST'])
 def edit_experience(request: HttpRequest, experience_id):
-    if not request.user.is_superuser:
+    if not request.user.is_superuser and not is_editor(request):
         raise PermissionDenied
 
     experience = get_object_or_404(Experience, pk=experience_id)
