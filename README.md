@@ -135,3 +135,7 @@ AI Model: Codex GPT-6 Astra.
 - Chat link: https://chatgpt.com/s/cx_6aafa4691e348191866162f85d729112
 - Added award editing. Each award now has an Edit button opening a prefilled form with Save Changes and Cancel.
 - Added CRUD for Experience and Skill, includes create, search, edit, and delete confirmation pages.
+
+### Tugas 4
+
+I didn't use AI at all.
