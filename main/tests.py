@@ -1,8 +1,19 @@
 from datetime import date
-from django.test import TestCase
+from django.test import (
+    Client,
+    TestCase,
+)
 from django.urls import reverse
+from django.contrib.auth.models import (
+    Group,
+    User,
+)
 
-from .models import Award, Experience, Skill
+from .models import (
+    Award,
+    Experience,
+    Skill,
+)
 
 class MainTest(TestCase):
     def test_main_url_is_accessible(self):
@@ -16,6 +27,7 @@ class MainTest(TestCase):
         response = self.client.get('/this-page-does-not-exist')
 
         self.assertEqual(response.status_code, 404)
+
 
 class ExperienceTest(TestCase):
     def setUp(self):
@@ -76,6 +88,7 @@ class ExperienceTest(TestCase):
         self.assertContains(response, '<time>Dec 2026</time>', html=True)
         self.assertNotContains(response, '<time>Present</time>', html=True)
 
+
 class AwardTest(TestCase):
     def setUp(self):
         self.award = Award.objects.create(
@@ -96,16 +109,17 @@ class AwardTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'main/awards.html')
-        self.assertQuerySetEqual(response.context['award_list'], [self.award])
-        self.assertContains(response, self.award.title)
-        self.assertContains(response, self.award.issuer)
-        self.assertContains(response, self.award.description)
-        self.assertContains(
-            response,
-            '<time class="award-date" datetime="2026-08-01">Aug 2026</time>',
-            html=True,
-        )
-        self.assertNotContains(response, 'No awards added yet.')
+        self.assertContains(response, '<ol id="list" class="awards-list hide" role="list"></ol>', html=True)
+        self.assertNotContains(response, self.award.title)
+        data = self.client.get(reverse('main:get_awards_json')).json()
+        self.assertEqual(data, [{
+            'pk': str(self.award.pk),
+            'fields': {
+                'title': self.award.title, 'issuer': self.award.issuer,
+                'description': self.award.description, 'awarded_at': '2026-08-01',
+                'star_count': 0, 'is_starred': False, 'starred_by_names': '',
+            },
+        }])
         self.assertContains(response, f'href="{reverse("main:index")}"')
 
     def test_awards_ordered_by_newest_date_then_title(self):
@@ -122,38 +136,34 @@ class AwardTest(TestCase):
             awarded_at=self.award.awarded_at,
         )
 
-        response = self.client.get(reverse('main:show_awards'))
+        response = self.client.get(reverse('main:get_awards_json'))
 
         expected = [same_date_award, self.award, older_award]
         self.assertQuerySetEqual(Award.objects.all(), expected)
-        self.assertQuerySetEqual(response.context['award_list'], expected)
-        content = response.content.decode()
-        positions = [content.index(f'id="award-{award.id}"') for award in expected]
-        self.assertEqual(positions, sorted(positions))
+        self.assertEqual([item['pk'] for item in response.json()],
+                         [str(award.pk) for award in expected])
 
     def test_empty_awards_page(self):
         Award.objects.all().delete()
-
         response = self.client.get(reverse('main:show_awards'))
-
         self.assertTemplateUsed(response, 'main/awards.html')
-        self.assertQuerySetEqual(response.context['award_list'], [])
-        self.assertContains(response, 'No awards added yet.')
+        self.assertContains(response, 'No awards added or found yet.')
+        self.assertEqual(self.client.get(reverse('main:get_awards_json')).json(), [])
 
-    def test_award_description_preserves_line_breaks_and_escapes_html(self):
+    def test_award_description_is_returned_as_json_without_embedding_in_page(self):
         self.award.description = 'First line\n<script>alert("test")</script>'
         self.award.save()
+        response = self.client.get(reverse('main:get_awards_json'))
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(response.json()[0]['fields']['description'], self.award.description)
+        page = self.client.get(reverse('main:show_awards'))
+        self.assertNotContains(page, self.award.description)
 
-        response = self.client.get(reverse('main:show_awards'))
-
-        self.assertContains(
-            response,
-            'First line<br>&lt;script&gt;alert(&quot;test&quot;)&lt;/script&gt;',
-        )
-        self.assertNotContains(response, '<script>')
 
 class AwardEditTest(TestCase):
     def setUp(self):
+        self.owner = User.objects.create_user(username='owner', is_superuser=True)
+        self.client.force_login(self.owner)
         self.award = Award.objects.create(
             title='Original Award',
             issuer='Original Issuer',
@@ -168,10 +178,10 @@ class AwardEditTest(TestCase):
             'awarded_at': '2026-09-19',
         }
 
-    def test_edit_link_on_awards_page(self):
+    def test_awards_page_enables_owner_editing(self):
         response = self.client.get(reverse('main:show_awards'))
-
-        self.assertContains(response, f'href="{self.url}"')
+        self.assertTrue(response.context['user'].is_superuser)
+        self.assertEqual(self.client.get(self.url).status_code, 200)
 
     def test_edit_form_is_prefilled(self):
         response = self.client.get(self.url)
@@ -238,7 +248,9 @@ class AwardEditTest(TestCase):
     def test_edit_requires_csrf_token(self):
         from django.test import Client
 
-        response = Client(enforce_csrf_checks=True).post(self.url, self.data)
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.owner)
+        response = client.post(self.url, self.data)
 
         self.assertEqual(response.status_code, 403)
         self.award.refresh_from_db()
@@ -256,8 +268,11 @@ class AwardEditTest(TestCase):
         self.assertEqual(Award.objects.count(), 2)
         self.assertTrue(Award.objects.filter(title='Updated Award').exists())
 
+
 class ExperienceCrudTest(TestCase):
     def setUp(self):
+        self.owner = User.objects.create_user(username='owner', is_superuser=True)
+        self.client.force_login(self.owner)
         self.skill = Skill.objects.create(name='Python')
         self.other_skill = Skill.objects.create(name='Django')
         self.data = {
@@ -390,6 +405,7 @@ class ExperienceCrudTest(TestCase):
     def test_mutations_require_csrf_and_reject_unsupported_methods(self):
         from django.test import Client
         client = Client(enforce_csrf_checks=True)
+        client.force_login(self.owner)
         for url in (reverse('main:create_experience'),
                     reverse('main:edit_experience', args=[self.experience.pk]),
                     reverse('main:delete_experience', args=[self.experience.pk])):
@@ -397,6 +413,7 @@ class ExperienceCrudTest(TestCase):
                 self.assertEqual(client.post(url, {}).status_code, 403)
                 self.assertEqual(self.client.delete(url).status_code, 405)
         self.assertTrue(Experience.objects.filter(pk=self.experience.pk).exists())
+
 
 class ExperienceJsonTest(TestCase):
     def setUp(self):
@@ -448,3 +465,99 @@ class ExperienceJsonTest(TestCase):
         self.assertContains(response, 'Developer')
         self.assertContains(response, '<li>Django</li>', html=True)
         self.assertEqual(response.context['experience_list'], [self.experience])
+
+
+class AwardAjaxTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = User.objects.create_user(username='owner', is_superuser=True)
+        cls.editor = User.objects.create_user(username='editor')
+        cls.editor.groups.add(Group.objects.create(name='Editor'))
+        cls.visitor = User.objects.create_user(username='visitor')
+
+    def setUp(self):
+        self.url = reverse('main:create_award_ajax')
+        self.data = {
+            'title': 'New Award', 'issuer': 'University',
+            'description': 'First line\nSecond line', 'awarded_at': '2026-09-30',
+        }
+
+    def test_creation_is_owner_only_and_returns_json(self):
+        for user in (None, self.visitor, self.editor):
+            self.client.logout()
+            if user:
+                self.client.force_login(user)
+            response = self.client.post(self.url, self.data)
+            self.assertEqual(response.status_code, 403)
+            self.assertIn('message', response.json())
+        self.assertFalse(Award.objects.exists())
+        self.client.force_login(self.owner)
+        response = self.client.post(self.url, self.data)
+        self.assertEqual(response.status_code, 201)
+        award = Award.objects.get(pk=response.json()['pk'])
+        self.assertEqual(award.awarded_at, date(2026, 9, 30))
+        self.assertEqual(award.description, self.data['description'])
+
+    def test_invalid_inputs_are_not_saved(self):
+        self.client.force_login(self.owner)
+        for field, value in [('title', '   '), ('title', '<img src=x onerror=alert(1)>'),
+                             ('title', 'a' * 256), ('issuer', '<br>'),
+                             ('description', '<br>'), ('awarded_at', '2026-02-30')]:
+            with self.subTest(field=field, value=value):
+                response = self.client.post(self.url, {**self.data, field: value})
+                self.assertEqual(response.status_code, 400)
+                self.assertIn(field, response.json()['errors'])
+        self.assertFalse(Award.objects.exists())
+
+    def test_html_is_stripped_on_ajax_and_regular_creation(self):
+        self.client.force_login(self.owner)
+        data = {**self.data, 'title': '<b>Winner</b>', 'issuer': '<i>University</i>',
+                'description': '<p>First line</p>\nSecond line'}
+        for url in (self.url, reverse('main:create_award')):
+            response = self.client.post(url, data)
+            self.assertIn(response.status_code, (201, 302))
+        for award in Award.objects.all():
+            self.assertEqual(award.title, 'Winner')
+            self.assertEqual(award.issuer, 'University')
+            self.assertEqual(award.description, 'First line\nSecond line')
+
+    def test_csrf_and_post_only(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.owner)
+        self.assertEqual(client.post(self.url, self.data).status_code, 403)
+        self.assertEqual(client.get(self.url).status_code, 405)
+        client.get(reverse('main:show_awards'))
+        response = client.post(self.url, self.data,
+                               HTTP_X_CSRFTOKEN=client.cookies['csrftoken'].value)
+        self.assertEqual(response.status_code, 201)
+
+    def test_page_contains_modal_only_for_owner(self):
+        for user in (None, self.visitor, self.editor, self.owner):
+            self.client.logout()
+            if user:
+                self.client.force_login(user)
+            response = self.client.get(reverse('main:show_awards'))
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, '<ol id="list" class="awards-list hide" role="list"></ol>', html=True)
+            if user == self.owner:
+                self.assertContains(response, 'id="award-form"')
+                for field in self.data:
+                    self.assertContains(response, f'name="{field}"')
+            else:
+                self.assertNotContains(response, 'id="award-form"')
+
+    def test_json_search_order_and_user_star_state(self):
+        award = Award.objects.create(**self.data)
+        award.starred_by.add(self.visitor)
+        older = Award.objects.create(**{**self.data, 'title': 'Old Award', 'awarded_at': '2025-01-01'})
+        url = reverse('main:get_awards_json')
+        anonymous = self.client.get(url).json()
+        self.assertEqual([item['pk'] for item in anonymous], [str(award.pk), str(older.pk)])
+        self.assertFalse(anonymous[0]['fields']['is_starred'])
+        self.assertEqual(anonymous[0]['fields']['star_count'], 1)
+        self.assertEqual(anonymous[0]['fields']['starred_by_names'], 'visitor')
+        self.client.force_login(self.visitor)
+        filtered = self.client.get(url, {'title': ' NEW '}).json()
+        self.assertEqual(len(filtered), 1)
+        self.assertTrue(filtered[0]['fields']['is_starred'])
+        self.assertEqual(self.client.get(url, {'title': 'missing'}).json(), [])

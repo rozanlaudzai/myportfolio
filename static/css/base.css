@@ -134,6 +134,10 @@ h1,
   background: var(--ink);
 }
 
+.hide {
+  display: none !important;
+}
+
 /* Form End */
 
 /* Footer */

@@ -16,6 +16,7 @@ urlpatterns = [
     # award
     path('awards/', views.show_awards, name='show_awards'),
     path('api/awards', views.get_awards_json, name='get_awards_json'),
+    path('awards/add-ajax/', views.create_award_ajax, name='create_award_ajax'),
     path('awards/add/', views.create_award, name='create_award'),
     path('awards/<uuid:award_id>/edit/', views.edit_award, name='edit_award'),
     path('awards/<uuid:award_id>/delete/', views.delete_award, name='delete_award'),

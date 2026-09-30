@@ -6,6 +6,7 @@
 <!--  -->
 {% block meta %}
 <link rel="stylesheet" href="{% static 'css/main/awards.css' %}" />
+<link rel="stylesheet" href="{% static 'css/main/experience.css' %}" />
 {% endblock meta %}
 
 <!--  -->
@@ -16,7 +17,9 @@
     <div class="awards-heading">
       <h1 id="awards-title">Awards</h1>
       {% if user.is_superuser %}
-      <a href="{% url 'main:create_award' %}" class="button"> Add Award </a>
+      <button type="button" class="button" popovertarget="add-award-modal">
+        Add Award
+      </button>
       {% endif %}
     </div>
 
@@ -24,71 +27,318 @@
     {% for message in messages %}
     <p class="award-message" role="status">{{ message }}</p>
     {% endfor %}
-    <form
-      method="get"
-      action="{% url 'main:show_awards' %}"
-      class="award-search"
-    >
+    <form id="award-search-form" class="award-search">
       <input
         type="search"
         name="title"
         value="{{ title_query }}"
         placeholder="Search by award title"
+        id="search-input"
         class="award-search__input"
         aria-label="Search by award title"
       />
       <button type="submit" class="button">Find</button>
     </form>
 
-    <ol class="awards-list" role="list">
-      {% for award in award_list %}
-      <li class="award-item">
-        <span class="award-number" aria-hidden="true"
-          >{{ forloop.counter|stringformat:"02d" }}</span
+    <!-- Loading State -->
+    <div id="loading" class="empty-state hide">
+      <p>Load awards...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="empty-state hide">
+      <p>Failed to load award data. Try again.</p>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty" class="empty-state hide">
+      <p>No awards added or found yet.</p>
+    </div>
+
+    <!-- Award List -->
+    <ol id="list" class="awards-list hide" role="list"></ol>
+  </div>
+</section>
+{% if user.is_superuser %} {% include 'main/components/award-form-modal.html' %}
+{% endif %}
+<script>
+  // config
+  const BASE_AWARDS_ENDPOINT = "{% url 'main:get_awards_json' %}";
+  const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
+  const IS_EDITOR = "{{ is_editor|yesno:'true,false' }}" === "true";
+  let awardsAbortController;
+
+  // DOM elements
+  const loadingState = document.getElementById("loading");
+  const errorState = document.getElementById("error");
+  const emptyState = document.getElementById("empty");
+  const listContainer = document.getElementById("list");
+  const searchForm = document.getElementById("award-search-form");
+  const searchInput = document.getElementById("search-input");
+
+  // hide/show page section
+  function displayPageSection({
+    showLoading = false,
+    showError = false,
+    showEmpty = false,
+    showList = false,
+  }) {
+    loadingState.classList.toggle("hide", !showLoading);
+    errorState.classList.toggle("hide", !showError);
+    emptyState.classList.toggle("hide", !showEmpty);
+    listContainer.classList.toggle("hide", !showList);
+  }
+
+  // create award item (one list unit) element
+  function buildAwardItemElement(item, index) {
+    const award = Object.fromEntries(
+      Object.entries(item.fields).map(([key, value]) => [
+        key,
+        typeof value === "string" ? escapeHtml(value) : value,
+      ]),
+    );
+    const awardId = escapeHtml(item.pk);
+
+    const liElement = document.createElement("li");
+    liElement.className = "award-item";
+
+    // dummy UUID digunakan untuk digantikan oleh ID asli dari JSON data
+    const deleteUrl =
+      "{% url 'main:delete_award' '00000000-0000-0000-0000-000000000000' %}".replace(
+        "00000000-0000-0000-0000-000000000000",
+        awardId,
+      );
+    const starUrl =
+      "{% url 'main:toggle_star' '00000000-0000-0000-0000-000000000000' %}".replace(
+        "00000000-0000-0000-0000-000000000000",
+        awardId,
+      );
+
+    const editUrl =
+      "{% url 'main:edit_award' '00000000-0000-0000-0000-000000000000' %}".replace(
+        "00000000-0000-0000-0000-000000000000",
+        awardId,
+      );
+    const editHtml =
+      IS_SUPERUSER || IS_EDITOR
+        ? `<a href="${editUrl}" class="button button-secondary" aria-label="Edit ${award.title}">Edit</a>`
+        : "";
+    const deleteHtml = IS_SUPERUSER
+      ? `
+  <p class="experience-status">
+    <button
+      type="button"
+      class="button button-danger"
+      popovertarget="delete-award-${awardId}"
+      aria-label="Delete ${award.title}"
+      title="Delete Award"
+    >
+      Delete
+    </button>
+  </p>
+  <div
+    id="delete-award-${awardId}"
+    class="award-delete-modal"
+    popover="auto"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="delete-award-title-${awardId}"
+  >
+    <button
+      type="button"
+      class="award-delete-modal__backdrop"
+      popovertarget="delete-award-${awardId}"
+      popovertargetaction="hide"
+      aria-label="Tutup konfirmasi hapus"
+    ></button>
+    <div class="award-delete-modal__content">
+      <button
+        type="button"
+        class="award-delete-modal__close"
+        popovertarget="delete-award-${awardId}"
+        popovertargetaction="hide"
+        aria-label="Tutup konfirmasi hapus"
+      >
+        ×
+      </button>
+      <h2 id="delete-award-title-${awardId}">Delete Award?</h2>
+      <p>
+        Are you sure you want to delete
+        <strong>${award.title}</strong>?
+      </p>
+      <div class="award-delete-modal__actions">
+        <button
+          type="button"
+          class="button button-secondary"
+          popovertarget="delete-award-${awardId}"
+          popovertargetaction="hide"
         >
-        <article class="award-card" aria-labelledby="award-{{ award.id }}">
+          Cancel
+        </button>
+        <form method="post" action="${deleteUrl}">
+          {% csrf_token %}
+          <button type="submit" class="button button-danger">Yes, delete it</button>
+        </form>
+      </div>
+    </div>
+  </div>
+      `
+      : "";
+
+    const isStarredClass = award.is_starred ? " is-starred" : "";
+    const starText = award.is_starred ? "Unstar" : "Star";
+    const starTitle =
+      award.star_count > 0
+        ? `Starred by ${award.starred_by_names}`
+        : "Be the first to give a star";
+
+    const formattedDate = award.awarded_at
+      ? new Date(`${award.awarded_at}T00:00:00Z`).toLocaleDateString("en-US", {
+          month: "short",
+          year: "numeric",
+          timeZone: "UTC",
+        })
+      : "";
+
+    liElement.innerHTML = `
+        <span class="award-number" aria-hidden="true">${String(index + 1).padStart(2, "0")}</span>
+        <article class="award-card" aria-labelledby="award-${awardId}">
           <div class="award-card-header">
             <div class="award-details">
-              <p class="award-issuer">{{ award.issuer }}</p>
-              <h2 id="award-{{ award.id }}">{{ award.title }}</h2>
+              <p class="award-issuer">${award.issuer}</p>
+              <h2 id="award-${awardId}">${award.title}</h2>
             </div>
-            <time
-              class="award-date"
-              datetime="{{ award.awarded_at|date:'Y-m-d' }}"
-              >{{ award.awarded_at|date:"M Y" }}</time
-            >
+            <time class="award-date" datetime="${award.awarded_at || ""}">${formattedDate}</time>
           </div>
-          <p class="award-description">{{ award.description|linebreaksbr }}</p>
+          <p class="award-description">${award.description.replace(/\r\n|\r|\n/g, "<br>")}</p>
           <div class="award-card-actions">
             <div class="award-actions">
-              {% if user.is_superuser or is_editor %}
-              <a
-                href="{% url 'main:edit_award' award.id %}"
-                class="button button-secondary"
-                aria-label="Edit {{ award.title }}"
-                >Edit</a
-              >
-              {% endif %}
-
-              {% if user.is_superuser %}
-              {% include 'main/components/award-delete-modal.html' with award=award %}
-              {% endif %}
-              {% include 'main/components/award-star.html' with award=award %}
+              ${editHtml}
+              ${deleteHtml}
+              <form method="post" action="${starUrl}" class="star-form">
+                {% csrf_token %}
+                <button type="submit" class="button button-star${isStarredClass}" title="${starTitle}">
+                  <span aria-hidden="true">★</span>
+                  ${starText}
+                  <span class="star-count">${award.star_count}</span>
+                </button>
+              </form>
             </div>
           </div>
         </article>
-      </li>
-      {% empty %}
-      <!--  -->
-      {% if title_query %}
-      <li class="empty-state">No awards found.</li>
-      {% else %}
-      <li class="empty-state">No awards added yet.</li>
-      {% endif %}
-      <!--  -->
-      {% endfor %}
-    </ol>
-  </div>
-</section>
+      `;
+    return liElement;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(
+      /[&<>"']/g,
+      (character) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[character],
+    );
+  }
+
+  async function fetchAwards(searchQuery = "") {
+    awardsAbortController?.abort();
+    const controller = new AbortController();
+    awardsAbortController = controller;
+    displayPageSection({ showLoading: true });
+    const url = new URL(BASE_AWARDS_ENDPOINT, window.location.origin);
+    url.searchParams.set("title", searchQuery);
+
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) throw new Error("Failed to load awards");
+      const awards = await response.json();
+      if (controller.signal.aborted) return;
+      listContainer.replaceChildren(...awards.map(buildAwardItemElement));
+      displayPageSection({
+        showList: awards.length > 0,
+        showEmpty: awards.length === 0,
+      });
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      displayPageSection({ showError: true });
+    }
+  }
+
+  const SEARCH_DEBOUNCE_DELAY = 300;
+  let searchDebounceTimer;
+
+  function searchAwards() {
+    return fetchAwards(searchInput.value.trim());
+  }
+
+  searchInput.addEventListener("input", () => {
+    clearTimeout(searchDebounceTimer);
+    awardsAbortController?.abort();
+    searchDebounceTimer = setTimeout(searchAwards, SEARCH_DEBOUNCE_DELAY);
+  });
+
+  searchForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    clearTimeout(searchDebounceTimer);
+    searchAwards();
+  });
+
+  const CREATE_AWARD_ENDPOINT = "{% url 'main:create_award_ajax' %}";
+  const awardForm = document.getElementById("award-form");
+
+  function closeAwardModal() {
+    document.getElementById("add-award-modal").hidePopover();
+  }
+
+  async function addAward(event) {
+    event.preventDefault();
+    const submitButton = awardForm.querySelector('button[type="submit"]');
+    if (submitButton.disabled) return;
+    submitButton.disabled = true;
+
+    try {
+      const response = await fetch(CREATE_AWARD_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": awardForm.elements.csrfmiddlewaretoken.value,
+        },
+        body: new FormData(awardForm),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (response.ok) {
+        awardForm.reset();
+        closeAwardModal();
+        showToast("Success", "New award successfully added!", "success");
+        clearTimeout(searchDebounceTimer);
+        await searchAwards();
+      } else {
+        const errors = result.errors
+          ? Object.values(result.errors)
+              .flat()
+              .map((error) => error.message)
+          : [
+              result.message ||
+                `Could not add award (status ${response.status}).`,
+            ];
+        showToast("Could not add award", errors.join(" "), "error");
+      }
+    } catch (error) {
+      showToast(
+        "Could not add award",
+        "Cannot connect to the server. Please try again.",
+        "error",
+      );
+    } finally {
+      submitButton.disabled = false;
+    }
+  }
+
+  if (awardForm) awardForm.addEventListener("submit", addAward);
+  searchAwards();
+</script>
 <!-- End Section: Awards -->
 {% endblock content %}
