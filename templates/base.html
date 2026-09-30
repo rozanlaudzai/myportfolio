@@ -36,6 +36,19 @@
       </div>
     </header>
 
+    <button
+      class="button button-secondary"
+      onclick="
+        showToast(
+          'System Notification',
+          'Project has been successfully loaded',
+          'success',
+        )
+      "
+    >
+      Test Toast Notification
+    </button>
+
     <main>{% block content %} {% endblock content %}</main>
 
     <footer class="site-footer">
@@ -43,5 +56,7 @@
         <p>&copy; 2026 Rozan. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
       </div>
     </footer>
+
+    {% include 'components/toast.html' %}
   </body>
 </html>

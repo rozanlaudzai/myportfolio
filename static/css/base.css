@@ -79,6 +79,63 @@ h1,
 }
 /* Header End */
 
+/* Form */
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 700;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  font: inherit;
+  transition:
+    border-color 0.2s ease,
+    outline-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: 2px solid var(--accent);
+  border-color: var(--accent);
+}
+
+.form-error {
+  color: #b42318;
+  font-size: 0.85rem;
+  margin-top: 0.35rem;
+}
+
+.button {
+  display: inline-block;
+  height: fit-content;
+  border: 0;
+  border-radius: var(--radius);
+  padding: 0.65rem 1rem;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.button-secondary {
+  background: var(--ink);
+}
+
+/* Form End */
+
 /* Footer */
 .site-footer {
   padding: 1.5rem;
@@ -87,3 +144,88 @@ h1,
   border-top: 1px solid var(--line);
 }
 /* Footer End */
+
+/* Toast */
+
+.toast-component {
+  position: fixed;
+  inset: auto 2rem 2rem auto;
+  margin: 0;
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius);
+  box-shadow: 0 10px 25px rgba(28, 25, 23, 0.15);
+  display: none;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+  background-color: var(--paper);
+  border: 1px solid var(--line);
+  color: inherit;
+}
+
+.toast-component:popover-open {
+  display: flex;
+}
+
+.toast-hidden {
+  opacity: 0;
+  transform: translateY(150%);
+  pointer-events: none;
+}
+
+.toast-show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+  font-family:
+    "Space Grotesk",
+    -apple-system,
+    sans-serif;
+}
+
+.toast-message {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Modifikasi border kiri berdasarkan tipe notifikasi */
+.toast-success {
+  border-left: 4px solid #22c55e;
+}
+.toast-error {
+  border-left: 4px solid #b42318;
+}
+.toast-normal {
+  border-left: 4px solid var(--accent);
+}
+
+/* Toast End */
+
+/* Star */
+.star-form {
+  display: inline;
+}
+
+.button-star {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--ink);
+}
+
+.button-star.is-starred {
+  background: var(--accent);
+}
+
+.star-count {
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  font-size: 0.8rem;
+}
+/* Star End */
