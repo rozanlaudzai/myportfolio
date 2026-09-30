@@ -1,0 +1,26 @@
+<div id="add-award-modal" class="award-form-modal" popover="auto"
+     role="dialog" aria-modal="true" aria-labelledby="add-award-modal-title">
+  <button type="button" class="award-form-modal__backdrop"
+          popovertarget="add-award-modal" popovertargetaction="hide"
+          aria-label="Close add award form"></button>
+  <div class="award-form-modal__content">
+    <button type="button" class="award-form-modal__close"
+            popovertarget="add-award-modal" popovertargetaction="hide"
+            aria-label="Close add award form">×</button>
+    <h2 id="add-award-modal-title">Add New Award</h2>
+    <form id="award-form" method="post" action="{% url 'main:create_award' %}" class="award-form">
+      {% csrf_token %}
+      {% for field in form %}
+      <div class="form-group">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+      </div>
+      {% endfor %}
+      <div class="award-form-modal__actions">
+        <button type="button" class="button button-secondary"
+                popovertarget="add-award-modal" popovertargetaction="hide">Cancel</button>
+        <button type="submit" class="button">Add Award</button>
+      </div>
+    </form>
+  </div>
+</div>

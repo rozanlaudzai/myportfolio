@@ -10,6 +10,7 @@ from django.shortcuts import (
 from django.http import (
     HttpRequest,
     HttpResponse,
+    JsonResponse,
 )
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth import (
@@ -74,24 +75,33 @@ def show_experience(request: HttpRequest):
 
 @require_http_methods(['GET'])
 def show_awards(request: HttpRequest):
-    json_response = get_awards_json(request)
-
-    awards = serializers.deserialize(
-        'json',
-        json_response.content.decode('utf-8'),
-    )
-
-    awards = [award.object for award in awards]
-
     title_query = request.GET.get('title', '').strip()
 
     context = {
         'name': 'Rozan',
-        'award_list': awards,
         'title_query': title_query,
         'is_editor': is_editor(request),
+        'form': AwardForm(),
     }
+
     return render(request, 'main/awards.html', context)
+
+
+@require_http_methods(['POST'])
+def create_award_ajax(request: HttpRequest):
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {'message': 'Only the portfolio owner can add awards.'}, status=403,
+        )
+
+    form = AwardForm(request.POST)
+    if form.is_valid():
+        award = form.save()
+        return JsonResponse(
+            {'message': 'Award successfully added.', 'pk': str(award.pk)},
+            status=201,
+        )
+    return JsonResponse({'errors': form.errors.get_json_data()}, status=400)
 
 
 @login_required(login_url=login_url)
@@ -154,13 +164,31 @@ def get_experience_json(request: HttpRequest):
 @require_http_methods(['GET'])
 def get_awards_json(request: HttpRequest):
     title_query = request.GET.get('title', '').strip()
-    awards = Award.objects.all()
+    awards = Award.objects.prefetch_related('starred_by').all()
 
     if title_query:
         awards = awards.filter(title__icontains=title_query)
 
-    awards_json = serializers.serialize('json', awards, use_natural_foreign_keys=True)
-    return HttpResponse(awards_json, content_type='application/json')
+    data = []
+    for award in awards:
+        starred_users = award.starred_by.all()
+        is_starred = request.user in starred_users if request.user.is_authenticated else False
+        starred_by_names = ', '.join([u.username for u in starred_users])
+
+        data.append({
+            'pk': str(award.id),
+            'fields': {
+                'title': award.title,
+                'issuer': award.issuer,
+                'description': award.description,
+                'awarded_at': award.awarded_at,
+                'star_count': starred_users.count(),
+                'is_starred': is_starred,
+                'starred_by_names': starred_by_names,
+            }
+        })
+
+    return JsonResponse(data, safe=False)
 
 
 @login_required(login_url=login_url)

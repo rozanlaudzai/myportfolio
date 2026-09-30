@@ -1,5 +1,6 @@
 from django import forms
 from django.db import transaction
+from django.utils.html import strip_tags
 
 from .models import Award, Experience, Skill
 
@@ -47,6 +48,24 @@ class AwardForm(forms.ModelForm):
                 }
             ),
         }
+
+    def clean_title(self):
+        title = strip_tags(self.cleaned_data['title']).strip()
+        if not title:
+            raise forms.ValidationError('Award title cannot contain only HTML tags.')
+        return title
+
+    def clean_issuer(self):
+        issuer = strip_tags(self.cleaned_data['issuer']).strip()
+        if not issuer:
+            raise forms.ValidationError('Award issuer cannot contain only HTML tags.')
+        return issuer
+
+    def clean_description(self):
+        description = strip_tags(self.cleaned_data['description']).strip()
+        if not description:
+            raise forms.ValidationError('Award description cannot contain only HTML tags.')
+        return description
 
 
 class ExperienceForm(forms.ModelForm):
