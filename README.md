@@ -146,3 +146,4 @@ I didn't use AI at all.
 - Implemented 300 ms search debouncing, request cancellation, and loading, empty, and error states.
 - Updated the JSON endpoint to include skill names and implemented safe rendering while preserving existing display details and access controls.
 - Updated Django tests, added JavaScript regression tests, ran coverage and browser checks, and committed the changes.
+- Made the Experience creation page as a modal.
