@@ -13,77 +13,34 @@
 <!--  -->
 {% block content %}
 <!-- Section: Experience -->
-<section class="experience" aria-labelledby="experience-title">
+<section id="experience-page" class="experience" aria-labelledby="experience-title"
+  data-endpoint="{% url 'main:get_experience_json' %}"
+  data-is-superuser="{{ user.is_superuser|yesno:'true,false' }}"
+  data-is-editor="{{ is_editor|yesno:'true,false' }}"
+  data-edit-url="{% url 'main:edit_experience' '00000000-0000-0000-0000-000000000000' %}"
+  data-delete-url="{% url 'main:delete_experience' '00000000-0000-0000-0000-000000000000' %}">
   <div class="container">
     <div class="experience-heading">
       <h2 id="experience-title">Experience</h2>
       {% if user.is_superuser %}
-      <a href="{% url 'main:create_experience' %}" class="button">Add Experience</a>
+      <button type="button" class="button" popovertarget="add-experience-modal">Add Experience</button>
       {% endif %}
     </div>
     {% for message in messages %}<p class="award-message" role="status">{{ message }}</p>{% endfor %}
-    <form method="get" class="award-search">
-      <input type="search" name="title" value="{{ title_query }}" placeholder="Search by experience title" aria-label="Search by experience title" class="award-search__input" />
+    <form id="experience-search-form" method="get" class="award-search">
+      <input id="experience-search-input" type="search" name="title" value="{{ title_query }}" placeholder="Search by experience title" aria-label="Search by experience title" class="award-search__input" />
       <button type="submit" class="button">Find</button>
     </form>
-    <ol class="experience-list">
-      {% for experience in experience_list %}
-      <li class="experience-item">
-        <span class="experience-number" aria-hidden="true"></span>
-        <article class="experience-card" aria-labelledby="role-{{ experience.id }}">
-          <div class="experience-card-header">
-            <div class="experience-logo experience-logo-large">
-              {% if experience.company_logo %}
-              <img
-                src="{{ experience.company_logo }}"
-                alt="{{ experience.company_name }} logo"
-                width="72"
-                height="72"
-                loading="lazy"
-              />
-              {% endif %}
-            </div>
-            <div class="experience-details">
-              <p class="experience-organization">
-                {{ experience.company_name }}
-              </p>
-              <h3 id="role-{{ experience.id }}">{{ experience.title }}</h3>
-            </div>
-            <p class="experience-date">
-              <time>{{ experience.started_at|date:"M Y" }}</time>
-              &ndash; {% if experience.is_ongoing %}
-              <time>Present</time>
-              {% else %}
-              <time>{{ experience.ended_at|date:"M Y" }}</time>
-              {% endif %}
-            </p>
-          </div>
-          <div class="experience-card-body">
-            <p class="experience-description">
-              {{ experience.description|linebreaksbr }}
-            </p>
-            <ul class="experience-skills" aria-label="Skills and technologies">
-              {% for skill in experience.skills.all %}
-              <li>{{ skill.name }}</li>
-              {% endfor %}
-            </ul>
-          </div>
-          <div class="record-actions">
-            {% if user.is_superuser or is_editor %}
-            <a href="{% url 'main:edit_experience' experience.id %}" class="button button-secondary" aria-label="Edit {{ experience.title }}">Edit</a>
-            {% endif %}
-            <!--  -->
-            {% if user.is_superuser %}
-            <a href="{% url 'main:delete_experience' experience.id %}" class="button button-danger" aria-label="Delete {{ experience.title }}">Delete</a>
-            {% endif %}
-          </div>
-        </article>
-      </li>
-      {% empty %}
-      <li class="empty-state">{% if title_query %}No experiences found.{% else %}No experience added yet.{% endif %}</li>
-      {% endfor %}
-    </ol>
+    <div id="experience-loading" class="empty-state hide" role="status">Loading experiences...</div>
+    <div id="experience-error" class="empty-state hide" role="alert">Failed to load experiences. Please try searching again.</div>
+    <div id="experience-empty" class="empty-state hide" role="status"></div>
+    <ol id="experience-list" class="experience-list hide" role="list"></ol>
+    <noscript><p class="empty-state">Enable JavaScript to load experiences.</p></noscript>
   </div>
 </section>
+{% if user.is_superuser %}
+{% include 'main/components/experience-form-modal.html' %}
+{% endif %}
+<script src="{% static 'js/experience.js' %}" defer></script>
 <!-- End Section: Experience -->
 {% endblock %}

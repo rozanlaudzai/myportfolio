@@ -9,6 +9,7 @@ urlpatterns = [
     # experience
     path('experience/', views.show_experience, name='show_experience'),
     path('api/experience', views.get_experience_json, name='get_experience_json'),
+    path('experience/add-ajax/', views.create_experience_ajax, name='create_experience_ajax'),
     path('experience/add/', views.create_experience, name='create_experience'),
     path('experience/<uuid:experience_id>/edit/', views.edit_experience, name='edit_experience'),
     path('experience/<uuid:experience_id>/delete/', views.delete_experience, name='delete_experience'),

@@ -61,32 +61,30 @@ class ExperienceTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'main/experience.html')
-        self.assertContains(response, self.experience.title)
-        self.assertContains(response, self.experience.description)
-        self.assertContains(response, self.experience.company_name)
-        self.assertContains(response, '<li>Django</li>', html=True)
-        self.assertContains(response, '<time>Aug 2026</time>', html=True)
-        self.assertContains(response, '<time>Present</time>', html=True)
-        self.assertContains(response, f'href="{reverse("main:index")}"')
+        self.assertContains(response, 'id="experience-list"')
+        self.assertContains(response, 'js/experience.js')
+        self.assertNotContains(response, self.experience.title)
+        data = self.client.get(reverse('main:get_experience_json')).json()[0]['fields']
+        self.assertEqual(data['title'], self.experience.title)
+        self.assertEqual(data['description'], self.experience.description)
+        self.assertEqual(data['company_name'], self.experience.company_name)
+        self.assertEqual(data['skill_names'], ['Django'])
+        self.assertEqual(data['started_at'], '2026-08-01')
+        self.assertIsNone(data['ended_at'])
 
     def test_empty_experience_page(self):
         Experience.objects.all().delete()
-
         response = self.client.get(reverse('main:show_experience'))
-
-        self.assertContains(response, 'No experience added yet.')
+        self.assertContains(response, 'id="experience-empty"')
+        self.assertEqual(self.client.get(reverse('main:get_experience_json')).json(), [])
 
     def test_completed_experience(self):
         self.experience.ended_at = date(2026, 12, 1)
         self.experience.save()
-        self.experience.refresh_from_db()
-
-        response = self.client.get(reverse('main:show_experience'))
-
         self.assertFalse(self.experience.is_ongoing)
-        self.assertContains(response, '<time>Aug 2026</time>', html=True)
-        self.assertContains(response, '<time>Dec 2026</time>', html=True)
-        self.assertNotContains(response, '<time>Present</time>', html=True)
+        data = self.client.get(reverse('main:get_experience_json')).json()[0]['fields']
+        self.assertEqual(data['started_at'], '2026-08-01')
+        self.assertEqual(data['ended_at'], '2026-12-01')
 
 
 class AwardTest(TestCase):
@@ -298,7 +296,8 @@ class ExperienceCrudTest(TestCase):
         self.assertSetEqual(set(created.skills.all()), {self.skill, self.other_skill})
         self.assertTrue(created.is_ongoing)
         response = self.client.get(reverse('main:show_experience'))
-        self.assertContains(response, 'src="https://example.com/logo.png"')
+        data = self.client.get(reverse('main:get_experience_json')).json()
+        self.assertEqual(data[0]['fields']['company_logo'], 'https://example.com/logo.png')
 
     def test_create_without_optional_fields(self):
         data = {**self.data, 'skills': '', 'company_logo': ''}
@@ -347,9 +346,10 @@ class ExperienceCrudTest(TestCase):
 
     def test_search_and_missing_records(self):
         response = self.client.get(reverse('main:show_experience'), {'title': ' ORIGINAL '})
-        self.assertContains(response, self.experience.title)
-        response = self.client.get(reverse('main:show_experience'), {'title': 'missing'})
-        self.assertContains(response, 'No experiences found.')
+        self.assertEqual(response.context['title_query'], 'ORIGINAL')
+        data = self.client.get(reverse('main:get_experience_json'), {'title': ' ORIGINAL '}).json()
+        self.assertEqual([item['pk'] for item in data], [str(self.experience.pk)])
+        self.assertEqual(self.client.get(reverse('main:get_experience_json'), {'title': 'missing'}).json(), [])
         pk = self.experience.pk
         self.experience.delete()
         for action in ('edit_experience', 'delete_experience'):
@@ -438,6 +438,7 @@ class ExperienceJsonTest(TestCase):
                 'company_logo': '', 'description': 'Built applications.',
                 'started_at': '2026-01-01', 'ended_at': None,
                 'skills': [str(self.skill.pk)],
+                'skill_names': ['Django'],
             },
         }])
 
@@ -454,17 +455,43 @@ class ExperienceJsonTest(TestCase):
         Experience.objects.all().delete()
         self.assertEqual(self.client.get(self.url).json(), [])
 
-    def test_page_uses_json_and_keeps_skills(self):
+    def test_page_does_not_fetch_data_on_server(self):
         from unittest.mock import patch
-        from .views import get_experience_json
+        with patch('main.views.get_experience_json') as get_json:
+            response = self.client.get(reverse('main:show_experience'), {'title': ' develop '})
+        get_json.assert_not_called()
+        self.assertNotIn('experience_list', response.context)
+        self.assertEqual(response.context['title_query'], 'develop')
+        self.assertContains(response, 'value="develop"')
+        self.assertNotContains(response, 'Developer')
 
-        with patch('main.views.get_experience_json', wraps=get_experience_json) as get_json:
-            response = self.client.get(reverse('main:show_experience'), {'title': 'develop'})
+    def test_skills_are_prefetched_and_include_names(self):
+        other = Experience.objects.create(
+            title='Other', company_name='Example', description='Other role',
+            started_at=date(2025, 1, 1),
+        )
+        other.skills.add(self.skill)
+        with self.assertNumQueries(2):
+            response = self.client.get(self.url)
+        self.assertEqual([item['fields']['skill_names'] for item in response.json()],
+                         [['Django'], ['Django']])
+        other.skills.clear()
+        self.assertEqual(self.client.get(self.url).json()[1]['fields']['skill_names'], [])
 
-        get_json.assert_called_once()
-        self.assertContains(response, 'Developer')
-        self.assertContains(response, '<li>Django</li>', html=True)
-        self.assertEqual(response.context['experience_list'], [self.experience])
+    def test_page_permissions_and_endpoint_methods(self):
+        editor = User.objects.create_user(username='editor')
+        editor.groups.add(Group.objects.create(name='Editor'))
+        owner = User.objects.create_user(username='owner', is_superuser=True)
+        for user, superuser_flag, editor_flag in [(None, 'false', 'false'),
+                                                  (editor, 'false', 'true'),
+                                                  (owner, 'true', 'false')]:
+            self.client.logout()
+            if user:
+                self.client.force_login(user)
+            response = self.client.get(reverse('main:show_experience'))
+            self.assertContains(response, f'data-is-superuser="{superuser_flag}"')
+            self.assertContains(response, f'data-is-editor="{editor_flag}"')
+        self.assertEqual(self.client.post(self.url).status_code, 405)
 
 
 class AwardAjaxTest(TestCase):
@@ -561,3 +588,58 @@ class AwardAjaxTest(TestCase):
         self.assertEqual(len(filtered), 1)
         self.assertTrue(filtered[0]['fields']['is_starred'])
         self.assertEqual(self.client.get(url, {'title': 'missing'}).json(), [])
+
+
+class ExperienceAjaxCreateTest(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(username='owner', is_superuser=True)
+        self.url = reverse('main:create_experience_ajax')
+        self.data = {
+            'title': 'Developer', 'company_name': 'Example',
+            'description': 'Built applications', 'started_at': '2026-01-01',
+            'skills': 'Python, python, Django',
+        }
+
+    def test_owner_creation_saves_skills_and_modal_fields(self):
+        self.client.force_login(self.owner)
+        page = self.client.get(reverse('main:show_experience'))
+        self.assertContains(page, 'id="add-experience-modal"')
+        self.assertContains(page, 'id="experience-form"')
+        self.assertContains(page, 'Separate skills with commas')
+        response = self.client.post(self.url, self.data)
+        self.assertEqual(response.status_code, 201)
+        experience = Experience.objects.get(pk=response.json()['pk'])
+        self.assertEqual(experience.title, 'Developer')
+        self.assertIsNone(experience.ended_at)
+        self.assertSetEqual(set(experience.skills.values_list('name', flat=True)), {'Python', 'Django'})
+
+    def test_permissions_and_csrf(self):
+        editor = User.objects.create_user(username='editor')
+        editor.groups.add(Group.objects.create(name='Editor'))
+        visitor = User.objects.create_user(username='visitor')
+        for user in (None, visitor, editor):
+            self.client.logout()
+            if user:
+                self.client.force_login(user)
+            self.assertNotContains(self.client.get(reverse('main:show_experience')), 'id="experience-form"')
+            response = self.client.post(self.url, self.data)
+            self.assertEqual(response.status_code, 403)
+            self.assertIn('message', response.json())
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.owner)
+        self.assertEqual(client.post(self.url, self.data).status_code, 403)
+        self.assertEqual(client.get(self.url).status_code, 405)
+        client.get(reverse('main:show_experience'))
+        response = client.post(self.url, self.data, HTTP_X_CSRFTOKEN=client.cookies['csrftoken'].value)
+        self.assertEqual(response.status_code, 201)
+
+    def test_validation_does_not_create_experiences_or_skills(self):
+        self.client.force_login(self.owner)
+        for field, value in [('title', ' '), ('ended_at', '2025-01-01'),
+                             ('company_logo', 'javascript:alert(1)'), ('skills', 'x' * 256)]:
+            with self.subTest(field=field):
+                response = self.client.post(self.url, {**self.data, field: value})
+                self.assertEqual(response.status_code, 400)
+                self.assertIn(field, response.json()['errors'])
+        self.assertFalse(Experience.objects.exists())
+        self.assertFalse(Skill.objects.exists())

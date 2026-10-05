@@ -1,0 +1,29 @@
+<div id="add-experience-modal" class="award-form-modal" popover="auto"
+     role="dialog" aria-modal="true" aria-labelledby="add-experience-modal-title">
+  <button type="button" class="award-form-modal__backdrop"
+          popovertarget="add-experience-modal" popovertargetaction="hide"
+          aria-label="Close add experience form"></button>
+  <div class="award-form-modal__content">
+    <button type="button" class="award-form-modal__close"
+            popovertarget="add-experience-modal" popovertargetaction="hide"
+            aria-label="Close add experience form">×</button>
+    <h2 id="add-experience-modal-title">Add New Experience</h2>
+    <form id="experience-form" data-endpoint="{% url 'main:create_experience_ajax' %}" method="post" action="{% url 'main:create_experience' %}" class="experience-form">
+      {% csrf_token %}
+      {% for field in form %}
+      <div class="form-group">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}
+        <p class="form-help" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+      <div class="award-form-modal__actions">
+        <button type="button" class="button button-secondary"
+                popovertarget="add-experience-modal" popovertargetaction="hide">Cancel</button>
+        <button type="submit" class="button">Add Experience</button>
+      </div>
+    </form>
+  </div>
+</div>
