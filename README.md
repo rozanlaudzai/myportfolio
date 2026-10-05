@@ -139,3 +139,10 @@ AI Model: Codex GPT-6 Astra.
 ### Tugas 4
 
 I didn't use AI at all.
+
+### Tugas 5
+
+- Refactored the Experience page from Django template list rendering to asynchronous Fetch API rendering.
+- Implemented 300 ms search debouncing, request cancellation, and loading, empty, and error states.
+- Updated the JSON endpoint to include skill names and implemented safe rendering while preserving existing display details and access controls.
+- Updated Django tests, added JavaScript regression tests, ran coverage and browser checks, and committed the changes.
