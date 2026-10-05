@@ -1,7 +1,5 @@
 import datetime
 from django.contrib import messages
-from django.core import serializers
-from django.db.models import prefetch_related_objects
 from django.shortcuts import (
     render,
     redirect,
@@ -9,7 +7,6 @@ from django.shortcuts import (
 )
 from django.http import (
     HttpRequest,
-    HttpResponse,
     JsonResponse,
 )
 from django.views.decorators.http import require_http_methods
@@ -56,17 +53,8 @@ def index(request: HttpRequest):
 
 @require_http_methods(['GET'])
 def show_experience(request: HttpRequest):
-    json_response = get_experience_json(request)
-    experiences = serializers.deserialize(
-        'json',
-        json_response.content.decode('utf-8'),
-    )
-    experiences = [experience.object for experience in experiences]
-    prefetch_related_objects(experiences, 'skills')
-
     context = {
         'name': 'Rozan',
-        'experience_list': experiences,
         'title_query': request.GET.get('title', '').strip(),
         'is_editor': is_editor(request),
     }
@@ -157,8 +145,24 @@ def get_experience_json(request: HttpRequest):
     if title_query:
         experiences = experiences.filter(title__icontains=title_query)
 
-    experiences_json = serializers.serialize('json', experiences)
-    return HttpResponse(experiences_json, content_type='application/json')
+    data = []
+    for experience in experiences:
+        skills = list(experience.skills.all())
+        data.append({
+            'model': 'main.experience',
+            'pk': str(experience.pk),
+            'fields': {
+                'title': experience.title,
+                'company_name': experience.company_name,
+                'company_logo': experience.company_logo,
+                'description': experience.description,
+                'started_at': experience.started_at,
+                'ended_at': experience.ended_at,
+                'skills': [str(skill.pk) for skill in skills],
+                'skill_names': [skill.name for skill in skills],
+            },
+        })
+    return JsonResponse(data, safe=False)
 
 
 @require_http_methods(['GET'])
