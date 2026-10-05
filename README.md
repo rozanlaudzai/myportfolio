@@ -142,6 +142,7 @@ I didn't use AI at all.
 
 ### Tugas 5
 
+- Chat link: https://chatgpt.com/s/cx_6ac3bdcbae4c8191a58bb1fd3c9b0528
 - Refactored the Experience page from Django template list rendering to asynchronous Fetch API rendering.
 - Implemented 300 ms search debouncing, request cancellation, and loading, empty, and error states.
 - Updated the JSON endpoint to include skill names and implemented safe rendering while preserving existing display details and access controls.
