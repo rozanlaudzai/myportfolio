@@ -55,6 +55,7 @@ def index(request: HttpRequest):
 def show_experience(request: HttpRequest):
     context = {
         'name': 'Rozan',
+        'form': ExperienceForm(),
         'title_query': request.GET.get('title', '').strip(),
         'is_editor': is_editor(request),
     }
@@ -226,6 +227,22 @@ def _save_record(request: HttpRequest, form_class, instance, label, list_view):
         'name': 'Rozan', 'form': form, 'label': label,
         'editing': editing, 'list_view': list_view,
     })
+
+
+@require_http_methods(['POST'])
+def create_experience_ajax(request: HttpRequest):
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {'message': 'Only the portfolio owner can add experiences.'}, status=403,
+        )
+    form = ExperienceForm(request.POST)
+    if form.is_valid():
+        experience = form.save()
+        return JsonResponse(
+            {'message': 'Experience successfully added.', 'pk': str(experience.pk)},
+            status=201,
+        )
+    return JsonResponse({'errors': form.errors.get_json_data()}, status=400)
 
 
 @login_required(login_url=login_url)

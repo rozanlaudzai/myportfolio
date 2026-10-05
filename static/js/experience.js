@@ -130,5 +130,38 @@
     clearTimeout(searchTimer);
     searchExperiences();
   });
+  const experienceForm = document.getElementById("experience-form");
+  if (experienceForm) {
+    experienceForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const submitButton = experienceForm.querySelector('button[type="submit"]');
+      if (submitButton.disabled) return;
+      submitButton.disabled = true;
+      try {
+        const response = await fetch(experienceForm.dataset.endpoint, {
+          method: "POST",
+          headers: { "X-CSRFToken": experienceForm.elements.csrfmiddlewaretoken.value },
+          body: new FormData(experienceForm),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const errors = result.errors
+            ? Object.values(result.errors).flat().map((error) => error.message)
+            : [result.message || `Could not add experience (status ${response.status}).`];
+          showToast("Could not add experience", errors.join(" "), "error");
+          return;
+        }
+        experienceForm.reset();
+        document.getElementById("add-experience-modal").hidePopover();
+        showToast("Success", "New experience successfully added!", "success");
+        clearTimeout(searchTimer);
+        await searchExperiences();
+      } catch (error) {
+        showToast("Could not add experience", "Cannot connect to the server. Please try again.", "error");
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+  }
   searchExperiences();
 })();

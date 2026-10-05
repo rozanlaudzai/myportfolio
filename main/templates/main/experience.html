@@ -23,7 +23,7 @@
     <div class="experience-heading">
       <h2 id="experience-title">Experience</h2>
       {% if user.is_superuser %}
-      <a href="{% url 'main:create_experience' %}" class="button">Add Experience</a>
+      <button type="button" class="button" popovertarget="add-experience-modal">Add Experience</button>
       {% endif %}
     </div>
     {% for message in messages %}<p class="award-message" role="status">{{ message }}</p>{% endfor %}
@@ -38,6 +38,9 @@
     <noscript><p class="empty-state">Enable JavaScript to load experiences.</p></noscript>
   </div>
 </section>
+{% if user.is_superuser %}
+{% include 'main/components/experience-form-modal.html' %}
+{% endif %}
 <script src="{% static 'js/experience.js' %}" defer></script>
 <!-- End Section: Experience -->
 {% endblock %}

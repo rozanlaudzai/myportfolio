@@ -588,3 +588,58 @@ class AwardAjaxTest(TestCase):
         self.assertEqual(len(filtered), 1)
         self.assertTrue(filtered[0]['fields']['is_starred'])
         self.assertEqual(self.client.get(url, {'title': 'missing'}).json(), [])
+
+
+class ExperienceAjaxCreateTest(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(username='owner', is_superuser=True)
+        self.url = reverse('main:create_experience_ajax')
+        self.data = {
+            'title': 'Developer', 'company_name': 'Example',
+            'description': 'Built applications', 'started_at': '2026-01-01',
+            'skills': 'Python, python, Django',
+        }
+
+    def test_owner_creation_saves_skills_and_modal_fields(self):
+        self.client.force_login(self.owner)
+        page = self.client.get(reverse('main:show_experience'))
+        self.assertContains(page, 'id="add-experience-modal"')
+        self.assertContains(page, 'id="experience-form"')
+        self.assertContains(page, 'Separate skills with commas')
+        response = self.client.post(self.url, self.data)
+        self.assertEqual(response.status_code, 201)
+        experience = Experience.objects.get(pk=response.json()['pk'])
+        self.assertEqual(experience.title, 'Developer')
+        self.assertIsNone(experience.ended_at)
+        self.assertSetEqual(set(experience.skills.values_list('name', flat=True)), {'Python', 'Django'})
+
+    def test_permissions_and_csrf(self):
+        editor = User.objects.create_user(username='editor')
+        editor.groups.add(Group.objects.create(name='Editor'))
+        visitor = User.objects.create_user(username='visitor')
+        for user in (None, visitor, editor):
+            self.client.logout()
+            if user:
+                self.client.force_login(user)
+            self.assertNotContains(self.client.get(reverse('main:show_experience')), 'id="experience-form"')
+            response = self.client.post(self.url, self.data)
+            self.assertEqual(response.status_code, 403)
+            self.assertIn('message', response.json())
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.owner)
+        self.assertEqual(client.post(self.url, self.data).status_code, 403)
+        self.assertEqual(client.get(self.url).status_code, 405)
+        client.get(reverse('main:show_experience'))
+        response = client.post(self.url, self.data, HTTP_X_CSRFTOKEN=client.cookies['csrftoken'].value)
+        self.assertEqual(response.status_code, 201)
+
+    def test_validation_does_not_create_experiences_or_skills(self):
+        self.client.force_login(self.owner)
+        for field, value in [('title', ' '), ('ended_at', '2025-01-01'),
+                             ('company_logo', 'javascript:alert(1)'), ('skills', 'x' * 256)]:
+            with self.subTest(field=field):
+                response = self.client.post(self.url, {**self.data, field: value})
+                self.assertEqual(response.status_code, 400)
+                self.assertIn(field, response.json()['errors'])
+        self.assertFalse(Experience.objects.exists())
+        self.assertFalse(Skill.objects.exists())
