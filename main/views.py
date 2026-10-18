@@ -8,6 +8,7 @@ from django.shortcuts import (
 from django.http import (
     HttpRequest,
     JsonResponse,
+    HttpResponse,
 )
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth import (
@@ -347,3 +348,7 @@ def toggle_star(request: HttpRequest, award_id):
 
     return redirect('main:show_awards')
 
+
+@require_http_methods(['GET'])
+def hello_view(request):
+    return HttpResponse('Hello')
