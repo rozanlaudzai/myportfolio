@@ -351,4 +351,4 @@ def toggle_star(request: HttpRequest, award_id):
 
 @require_http_methods(['GET'])
 def hello_view(request):
-    return HttpResponse('Hello')
+    return HttpResponse('Hello!')
