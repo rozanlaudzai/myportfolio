@@ -10,6 +10,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      PRODUCTION: ${{ secrets.PRODUCTION }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      MY_DOMAIN: ${{ secrets.MY_DOMAIN }}
+
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python 3.12.x
