@@ -28,6 +28,11 @@ class MainTest(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_hello(self):
+        response = self.client.get(reverse('main:hello'))
+        body = response.getvalue().decode('utf-8')
+        self.assertEqual(body, 'Hello!')
+
 
 class ExperienceTest(TestCase):
     def setUp(self):
