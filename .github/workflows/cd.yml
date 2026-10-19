@@ -1,0 +1,62 @@
+name: Deploy to PWS
+
+on:
+  workflow_run:
+    workflows: ["Django CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pws-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout tested commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Verify commit is still main HEAD
+        env:
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          git fetch origin main
+          test "$TESTED_SHA" = "$(git rev-parse origin/main)"
+
+      - name: Deploy to PWS
+        env:
+          PWS_REMOTE_URL: ${{ secrets.PWS_REMOTE_URL }}
+          PWS_USERNAME: ${{ secrets.PWS_USERNAME }}
+          PWS_PASSWORD: ${{ secrets.PWS_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          git remote add pws "$PWS_REMOTE_URL"
+
+          cat > "$RUNNER_TEMP/askpass.sh" <<'EOF'
+          #!/bin/sh
+          case "$1" in
+            *Username*) printf '%s\n' "$PWS_USERNAME" ;;
+            *Password*) printf '%s\n' "$PWS_PASSWORD" ;;
+          esac
+          EOF
+
+          chmod 700 "$RUNNER_TEMP/askpass.sh"
+
+          export GIT_ASKPASS="$RUNNER_TEMP/askpass.sh"
+          export GIT_TERMINAL_PROMPT=0
+
+          git push pws HEAD:master
