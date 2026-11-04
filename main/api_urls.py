@@ -5,4 +5,5 @@ app_name = 'api'
 
 urlpatterns = [
     path('awards/', api_views.award_list, name='award-list'),
+    path('awards/<uuid:award_id>/', api_views.award_detail, name='award-detail'),
 ]
