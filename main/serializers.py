@@ -30,21 +30,15 @@ class AwardSerializer(serializers.ModelSerializer):
         return value
 
     def validate_issuer(self, value):
-        value = strip_tags(value)
+        value = strip_tags(value).strip()
         if not value:
             raise serializers.ValidationError('Issuer cannot be empty.')
         return value
 
     def validate_description(self, value):
-        value = strip_tags(value)
+        value = strip_tags(value).strip()
         if not value:
             raise serializers.ValidationError('Description cannot be empty.')
-        return value
-
-    def awarded_at(self, value):
-        value = strip_tags(value)
-        if not value:
-            raise serializers.ValidationError('Awarded Time cannot be empty.')
         return value
 
     def get_star_count(self, obj: Award) -> int:

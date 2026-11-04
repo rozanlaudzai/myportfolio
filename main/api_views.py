@@ -6,24 +6,24 @@ from rest_framework.decorators import (
     permission_classes,
 )
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.request import Request, HttpRequest
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework import status
 
 from .models import Award
 from .serializers import AwardSerializer
-from .permissions import IsPortfolioOwnerOrReadOnly
+from .permissions import IsPortfolioOwnerOrEditorOrReadOnly
 
 @api_view(['GET', 'HEAD', 'POST'])
 @authentication_classes([SessionAuthentication])
-@permission_classes([IsPortfolioOwnerOrReadOnly])
+@permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def award_list(request: Request):
     if request.method in ('GET', 'HEAD'):
-        awards = Award.objects.prefetch_related('starred_by').order_by('title', 'id')
+        awards = Award.objects.prefetch_related('starred_by').order_by('-awarded_at', 'title', 'id')
         title = request.query_params.get('title', '').strip()
 
         if title:
-            awards = awards.objects.filter(title__icontains=title)
+            awards = awards.filter(title__icontains=title)
 
         serializer = AwardSerializer(awards, many=True, context={
             'request': request,
@@ -41,7 +41,7 @@ def award_list(request: Request):
 
 @api_view(['GET', 'HEAD', 'PUT', 'PATCH', 'DELETE'])
 @authentication_classes([SessionAuthentication])
-@permission_classes([IsPortfolioOwnerOrReadOnly])
+@permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def award_detail(request: Request, award_id):
     award = get_object_or_404(
         Award.objects.prefetch_related('starred_by'),
@@ -75,7 +75,7 @@ def award_detail(request: Request, award_id):
 @api_view(['POST'])
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def award_star(request: HttpRequest, award_id):
+def award_star(request: Request, award_id):
     award = get_object_or_404(Award, pk=award_id)
     
     if award.starred_by.filter(pk=request.user.pk).exists():
