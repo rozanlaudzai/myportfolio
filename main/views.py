@@ -1,3 +1,4 @@
+from django.views.decorators.csrf import ensure_csrf_cookie
 import datetime
 from django.contrib import messages
 from django.shortcuts import (
@@ -63,6 +64,7 @@ def show_experience(request: HttpRequest):
     return render(request, 'main/experience.html', context)
 
 
+@ensure_csrf_cookie
 @require_http_methods(['GET'])
 def show_awards(request: HttpRequest):
     title_query = request.GET.get('title', '').strip()
