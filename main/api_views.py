@@ -5,7 +5,8 @@ from rest_framework.decorators import (
     authentication_classes,
     permission_classes,
 )
-from rest_framework.request import Request
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request, HttpRequest
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -68,4 +69,22 @@ def award_detail(request: Request, award_id):
 
     serializer.is_valid(raise_exception=True)
     serializer.save()
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def award_star(request: HttpRequest, award_id):
+    award = get_object_or_404(Award, pk=award_id)
+    
+    if award.starred_by.filter(pk=request.user.pk).exists():
+        award.starred_by.remove(request.user)
+    else:
+        award.starred_by.add(request.user)
+
+    serializer = AwardSerializer(award, context={
+        'request': request,
+    })
+
     return Response(serializer.data)
