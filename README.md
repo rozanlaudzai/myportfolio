@@ -77,7 +77,7 @@ Open `http://127.0.0.1:8000` on your browser.
 Run the test suite with coverage:
 
 ```bash
-coverage run --source='.' manage.py test
+coverage run --source='.' manage.py test main
 ```
 
 View the coverage report:
@@ -85,6 +85,63 @@ View the coverage report:
 ```bash
 coverage report
 ```
+
+## Tutorial 07: Django REST Framework
+
+Tutorial Projects is adapted to this portfolio's existing **Award** model and
+`main/templates/main/awards.html`. No new Project model or database is needed.
+Experience and the previous HTML forms and JSON endpoints remain available.
+
+The award serializer exposes `id`, `title`, `issuer`, `description`, `awarded_at`,
+`star_count`, `is_starred`, and `starred_by_names`. Responses use flat objects,
+without the legacy `pk`/`fields` wrapper. Text fields strip HTML and reject empty
+values; `awarded_at` must be a valid date. IDs and computed star fields are read-only.
+
+| Method | Endpoint | Access |
+| --- | --- | --- |
+| GET / HEAD | `/api/v1/awards/` | Public; `?title=...` searches titles |
+| POST | `/api/v1/awards/` | Superuser; returns 201 |
+| GET / HEAD | `/api/v1/awards/<uuid>/` | Public |
+| PUT / PATCH | `/api/v1/awards/<uuid>/` | Superuser or member of `Editor` |
+| DELETE | `/api/v1/awards/<uuid>/` | Superuser; returns empty 204 |
+| POST | `/api/v1/awards/<uuid>/star/` | Logged-in user; toggles their own star |
+
+Awards uses the DRF endpoints for AJAX listing, creation, starring and deletion.
+The add and delete confirmation popovers, toast messages, 300 ms search debounce,
+stale request cancellation, and HTML escaping are preserved. Edit links still
+open the existing prefilled HTML form. API updates are also available through
+PUT/PATCH; PATCH only needs the changed fields, while PUT requires all four
+editable fields. Search remains active after writes.
+
+SessionAuthentication reuses website login. Every API write from a logged-in
+session requires a CSRF token, including star. The Awards page sets the CSRF
+cookie for visitors who do not have the add form. Guest star links lead to login.
+Permissions are enforced by the API as well as the UI; staff status alone does
+not grant write access.
+
+Run the API tests, all Django tests, and frontend regression tests:
+
+```bash
+python manage.py check
+python manage.py test main.tests_api --verbosity 2
+python manage.py test main
+node --test tests/awards.test.cjs tests/experience.test.cjs
+python manage.py makemigrations --check --dry-run
+python manage.py migrate --check
+```
+
+There are 13 award API test methods, including real session/CSRF checks and the
+Editor role, plus frontend tests for escaping, search cancellation, JSON writes,
+CSRF headers, error responses and DELETE 204. The permission regression test was
+also checked by temporarily permitting authenticated visitors to write: it failed
+as expected, and the original permission was restored.
+
+For PWS deployment, install the committed requirements and use the existing
+deployment workflow. Set `MY_DOMAIN` to the deployment hostname (without scheme)
+so `CSRF_TRUSTED_ORIGINS` matches its HTTPS origin. After deploying, check public
+reading, login, and a write operation on the deployed site. Local tests do not
+verify the deployed service. Keep `.env`, the local database, credentials and
+virtual environments out of Git.
 
 ## Pertanyaan Reflektif
 
@@ -148,3 +205,8 @@ I didn't use AI at all.
 - Updated the JSON endpoint to include skill names and implemented safe rendering while preserving existing display details and access controls.
 - Updated Django tests, added JavaScript regression tests, ran coverage and browser checks, and committed the changes.
 - Made the Experience creation page as a modal.
+
+### Tutorial 07
+
+- Adapted the existing Award AJAX frontend to the DRF API while preserving Editor access and existing forms.
+- Added API and JavaScript regression tests, verified CSRF and role permissions, and documented the API contract.

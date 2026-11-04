@@ -63,9 +63,12 @@
 {% endif %}
 <script>
   // config
-  const BASE_AWARDS_ENDPOINT = "{% url 'main:get_awards_json' %}";
+  const BASE_AWARDS_ENDPOINT = "{% url 'api:award-list' %}";
   const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
   const IS_EDITOR = "{{ is_editor|yesno:'true,false' }}" === "true";
+  const IS_AUTHENTICATED = "{{ user.is_authenticated|yesno:'true,false' }}" === "true";
+  const DETAIL_AWARD_ENDPOINT = "{% url 'api:award-detail' '00000000-0000-0000-0000-000000000000' %}";
+  const STAR_AWARD_ENDPOINT = "{% url 'api:award-star' '00000000-0000-0000-0000-000000000000' %}";
   let awardsAbortController;
 
   // DOM elements
@@ -92,28 +95,17 @@
   // create award item (one list unit) element
   function buildAwardItemElement(item, index) {
     const award = Object.fromEntries(
-      Object.entries(item.fields).map(([key, value]) => [
+      Object.entries(item).map(([key, value]) => [
         key,
         typeof value === "string" ? escapeHtml(value) : value,
       ]),
     );
-    const awardId = escapeHtml(item.pk);
+    const awardId = escapeHtml(item.id);
 
     const liElement = document.createElement("li");
     liElement.className = "award-item";
 
     // dummy UUID digunakan untuk digantikan oleh ID asli dari JSON data
-    const deleteUrl =
-      "{% url 'main:delete_award' '00000000-0000-0000-0000-000000000000' %}".replace(
-        "00000000-0000-0000-0000-000000000000",
-        awardId,
-      );
-    const starUrl =
-      "{% url 'main:toggle_star' '00000000-0000-0000-0000-000000000000' %}".replace(
-        "00000000-0000-0000-0000-000000000000",
-        awardId,
-      );
-
     const editUrl =
       "{% url 'main:edit_award' '00000000-0000-0000-0000-000000000000' %}".replace(
         "00000000-0000-0000-0000-000000000000",
@@ -175,10 +167,8 @@
         >
           Cancel
         </button>
-        <form method="post" action="${deleteUrl}">
-          {% csrf_token %}
-          <button type="submit" class="button button-danger">Yes, delete it</button>
-        </form>
+        <button type="button" data-action="delete" data-id="${awardId}"
+                class="button button-danger">Yes, delete it</button>
       </div>
     </div>
   </div>
@@ -215,14 +205,13 @@
             <div class="award-actions">
               ${editHtml}
               ${deleteHtml}
-              <form method="post" action="${starUrl}" class="star-form">
-                {% csrf_token %}
-                <button type="submit" class="button button-star${isStarredClass}" title="${starTitle}">
-                  <span aria-hidden="true">★</span>
-                  ${starText}
+              ${IS_AUTHENTICATED ? `
+                <button type="button" data-action="star" data-id="${awardId}"
+                        class="button button-star${isStarredClass}" title="${starTitle}">
+                  <span aria-hidden="true">★</span> ${starText}
                   <span class="star-count">${award.star_count}</span>
-                </button>
-              </form>
+                </button>` : `<a class="button button-star" href="{% url 'main:login' %}?next={% url 'main:show_awards' %}" title="${starTitle}">Login to star ★ ${award.star_count}</a>`}
+
             </div>
           </div>
         </article>
@@ -253,7 +242,7 @@
     url.searchParams.set("title", searchQuery);
 
     try {
-      const response = await fetch(url, { signal: controller.signal });
+      const response = await fetch(url, { signal: controller.signal, headers: { Accept: "application/json" } });
       if (!response.ok) throw new Error("Failed to load awards");
       const awards = await response.json();
       if (controller.signal.aborted) return;
@@ -287,8 +276,59 @@
     searchAwards();
   });
 
-  const CREATE_AWARD_ENDPOINT = "{% url 'main:create_award_ajax' %}";
   const awardForm = document.getElementById("award-form");
+
+  function getCookie(name) {
+    const cookie = document.cookie.split(";").map(value => value.trim())
+      .find(value => value.startsWith(`${name}=`));
+    return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : "";
+  }
+
+  function apiErrorMessage(data, status) {
+    if (data.detail) return data.detail;
+    return Object.entries(data).map(([field, errors]) =>
+      `${field}: ${Array.isArray(errors) ? errors.join(" ") : errors}`
+    ).join("\n") || `Request failed (HTTP ${status}).`;
+  }
+
+  function awardEndpoint(pattern, id) {
+    return pattern.replace("00000000-0000-0000-0000-000000000000", encodeURIComponent(id));
+  }
+
+  async function writeAward(url, method, data) {
+    const response = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-CSRFToken": getCookie("csrftoken"),
+      },
+      body: data === undefined ? undefined : JSON.stringify(data),
+    });
+    if (response.status === 204) return null;
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(apiErrorMessage(result, response.status));
+    return result;
+  }
+
+  listContainer.addEventListener("click", async event => {
+    const button = event.target.closest("button[data-action]");
+    if (!button || button.disabled) return;
+    button.disabled = true;
+    const action = button.dataset.action;
+    try {
+      await writeAward(awardEndpoint(action === "star" ? STAR_AWARD_ENDPOINT : DETAIL_AWARD_ENDPOINT,
+        button.dataset.id), action === "star" ? "POST" : "DELETE");
+      button.closest("[popover]")?.hidePopover();
+      showToast("Success", action === "star" ? "Star updated." : "Award deleted.", "success");
+      clearTimeout(searchDebounceTimer);
+      await searchAwards();
+    } catch (error) {
+      showToast("Request failed", error.message, "error");
+    } finally {
+      button.disabled = false;
+    }
+  });
 
   function closeAwardModal() {
     document.getElementById("add-award-modal").hidePopover();
@@ -301,37 +341,16 @@
     submitButton.disabled = true;
 
     try {
-      const response = await fetch(CREATE_AWARD_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": awardForm.elements.csrfmiddlewaretoken.value,
-        },
-        body: new FormData(awardForm),
-      });
-      const result = await response.json().catch(() => ({}));
-      if (response.ok) {
-        awardForm.reset();
-        closeAwardModal();
-        showToast("Success", "New award successfully added!", "success");
-        clearTimeout(searchDebounceTimer);
-        await searchAwards();
-      } else {
-        const errors = result.errors
-          ? Object.values(result.errors)
-              .flat()
-              .map((error) => error.message)
-          : [
-              result.message ||
-                `Could not add award (status ${response.status}).`,
-            ];
-        showToast("Could not add award", errors.join(" "), "error");
-      }
+      const data = Object.fromEntries(["title", "issuer", "description", "awarded_at"]
+        .map(field => [field, awardForm.elements[field].value]));
+      await writeAward(BASE_AWARDS_ENDPOINT, "POST", data);
+      awardForm.reset();
+      closeAwardModal();
+      showToast("Success", "New award successfully added!", "success");
+      clearTimeout(searchDebounceTimer);
+      await searchAwards();
     } catch (error) {
-      showToast(
-        "Could not add award",
-        "Cannot connect to the server. Please try again.",
-        "error",
-      );
+      showToast("Could not add award", error.message, "error");
     } finally {
       submitButton.disabled = false;
     }
