@@ -97,14 +97,14 @@ The award serializer exposes `id`, `title`, `issuer`, `description`, `awarded_at
 without the legacy `pk`/`fields` wrapper. Text fields strip HTML and reject empty
 values; `awarded_at` must be a valid date. IDs and computed star fields are read-only.
 
-| Method | Endpoint | Access |
-| --- | --- | --- |
-| GET / HEAD | `/api/v1/awards/` | Public; `?title=...` searches titles |
-| POST | `/api/v1/awards/` | Superuser; returns 201 |
-| GET / HEAD | `/api/v1/awards/<uuid>/` | Public |
-| PUT / PATCH | `/api/v1/awards/<uuid>/` | Superuser or member of `Editor` |
-| DELETE | `/api/v1/awards/<uuid>/` | Superuser; returns empty 204 |
-| POST | `/api/v1/awards/<uuid>/star/` | Logged-in user; toggles their own star |
+| Method      | Endpoint                      | Access                                 |
+| ----------- | ----------------------------- | -------------------------------------- |
+| GET / HEAD  | `/api/v1/awards/`             | Public; `?title=...` searches titles   |
+| POST        | `/api/v1/awards/`             | Superuser; returns 201                 |
+| GET / HEAD  | `/api/v1/awards/<uuid>/`      | Public                                 |
+| PUT / PATCH | `/api/v1/awards/<uuid>/`      | Superuser or member of `Editor`        |
+| DELETE      | `/api/v1/awards/<uuid>/`      | Superuser; returns empty 204           |
+| POST        | `/api/v1/awards/<uuid>/star/` | Logged-in user; toggles their own star |
 
 Awards uses the DRF endpoints for AJAX listing, creation, starring and deletion.
 The add and delete confirmation popovers, toast messages, 300 ms search debounce,
@@ -143,6 +143,85 @@ reading, login, and a write operation on the deployed site. Local tests do not
 verify the deployed service. Keep `.env`, the local database, credentials and
 virtual environments out of Git.
 
+## Tugas 6: Experience REST API
+
+Bagian mandiri adalah **Experience**, sedangkan Award tetap menjadi implementasi
+Tutorial 07. Data Experience dan Skill lama digunakan kembali. Migrasi 0009
+menambahkan relasi star tanpa menghapus data yang ada.
+
+| Method      | Endpoint                           | Hak akses                                  |
+| ----------- | ---------------------------------- | ------------------------------------------ |
+| GET / HEAD  | `/api/v1/experiences/`             | Semua peran; pencarian `?title=...`        |
+| POST        | `/api/v1/experiences/`             | Superuser (201)                            |
+| GET / HEAD  | `/api/v1/experiences/<uuid>/`      | Semua peran                                |
+| PUT / PATCH | `/api/v1/experiences/<uuid>/`      | Editor dan superuser                       |
+| DELETE      | `/api/v1/experiences/<uuid>/`      | Superuser (204, body kosong)               |
+| POST        | `/api/v1/experiences/<uuid>/star/` | Akun login; toggle star milik request.user |
+
+Field respons: `id`, `title`, `company_name`, `company_logo`, `description`,
+`started_at`, `ended_at`, `skills` (array nama), `star_count`, dan `is_starred`.
+ID dan kedua field star read-only; email/password/daftar akun tidak diekspos.
+Kesalahan validasi memakai 400, penolakan akses 403, objek tidak ada 404.
+Tanggal akhir boleh null (masih berlangsung), tetapi tidak boleh sebelum tanggal
+mulai, termasuk saat PATCH hanya mengubah salah satu tanggal. Nama skill
+membersihkan HTML, menghapus duplikat tanpa membedakan kapital, dan memakai
+kembali Skill lama. PATCH tanpa `skills` mempertahankan relasi skill.
+
+Contoh payload POST atau PUT:
+
+```json
+{
+  "title": "Developer",
+  "company_name": "Universitas Indonesia",
+  "company_logo": "",
+  "description": "Mengembangkan aplikasi portofolio",
+  "started_at": "2026-01-01",
+  "ended_at": null,
+  "skills": ["Python", "Django"]
+}
+```
+
+Contoh PATCH: `{"description": "Deskripsi baru"}`. PUT memerlukan semua field
+teks wajib dan `started_at`; field opsional mengikuti default DRF/model.
+
+Halaman `/experience/` memakai fetch untuk seluruh aksi tanpa reload, modal
+prefill untuk Editor/pemilik, konfirmasi hapus, loading/empty/error state,
+debounce 300 ms, serta pembatalan pencarian lama. Filter aktif dipertahankan
+setelah write. Error API ditampilkan sebagai toast dengan teks aman. Semua
+write mengirim X-CSRFToken; cookie juga tersedia bagi pengguna biasa dan Editor.
+Nilai teks di HTML di-escape dan URL logo dibatasi ke HTTP/HTTPS. View HTML lama
+masih tersedia: hanya superuser dapat create/delete dan Editor dapat edit.
+
+Setelah menarik perubahan, jalankan dari virtual environment:
+
+```bash
+python manage.py migrate
+python manage.py check
+python manage.py test main
+node --test tests/awards.test.cjs tests/experience.test.cjs
+python manage.py makemigrations --check --dry-run
+python manage.py runserver
+```
+
+Buat akun pemilik dengan `python manage.py createsuperuser`. Buat grup **Editor**
+melalui admin, lalu tambahkan akun yang boleh mengedit. Akun terdaftar biasa
+hanya dapat membaca dan star. Browsable API tersedia di `/api/v1/experiences/`
+dan `/api/v1/awards/`; login tersedia melalui `/api-auth/login/`.
+
+Validasi otomatis: 68 test Django (termasuk 13 test API Award dan 8 test API
+Experience), serta regression test JavaScript untuk kedua halaman. Test penolakan
+memeriksa database; test CSRF memakai login nyata, menolak write tanpa token,
+dan menerima request dengan token. Tidak perlu menjalankan Selenium test lama:
+gunakan `test main` sesuai petunjuk tugas.
+
+Smoke test Chromium dengan runserver dan database sementara juga lulus untuk
+halaman publik, Browsable API, create/search/star/edit/delete pemilik, PATCH
+Editor, dan star pengguna biasa, tanpa error JavaScript. Data asli tidak dipakai
+untuk percobaan write. Deployment PWS dan submisi SCELE tetap perlu diverifikasi
+terpisah. Riwayat lokal mencatat merge Tutorial 07 pada 4 November 2026 pukul
+23:36:58 WIB (`c797539`); waktu push/pengumpulannya tidak dapat disimpulkan dari
+waktu commit saja.
+
 ## Pertanyaan Reflektif
 
 ### Tugas 1
@@ -168,6 +247,16 @@ virtual environments out of Git.
 2. JSON formatnya lebih compact daripada XML. Selain itu, JSON lebih human-readable karena menggunakan struktur key-value dan array.
 
 3. Client kirim request $\to$ Django ambil model object sesuai yang diinginkan request $\to$ Django kirim response dalam bentuk JSON string (menggunakan `serializers.serialize("json", data)`) agar frontend mudah untuk consume API tersebut.
+
+### Tugas 6
+
+1. REST (Representational State Transfer) basically adalah API style dengan constraints client-server, stateless, cache, uniform interface, layered system, dan optional code-on-demand. URIs di RESTful API indentify a certain resource. JSON hanya format. `PUT` mengganti seluruh fields di suatu resource. `PATCH` memperbarui sebagian fields. Contohnya, `PUT` untuk memperbarui seluruh data Experience dan `PATCH` untuk mengubah deskripsinya saja.
+
+2. Serializer pada DRF mengubah data model menjadi format yang dapat dirender sebagai JSON, memvalidasi input, serta menangani create/update. Dibandingkan dictionary manual dengan JsonResponse, serializer menyediakan validasi otomatis, penanganan error yang konsisten, dan kode yang lebih mudah digunakan kembali.
+
+3. Autentikasi memverifikasi identitas pengguna, sedangkan otorisasi menentukan hak aksesnya. Pada DRF, autentikasi dapat menggunakan `SessionAuthentication`, sementara otorisasi menggunakan permission class. Pemeriksaan harus dilakukan di server karena menyembunyikan tombol di template tidak mencegah pengguna mengirim request langsung melalui HTTP client.
+
+4. `SessionAuthentication` menggunakan cookie session yang dikirim otomatis oleh browser sehingga rentan terhadap serangan CSRF. Oleh karena itu, request yang mengubah data memerlukan token CSRF, misalnya melalui header `X-CSRFToken`. `force_authenticate` melewati autentikasi session sehingga tidak menguji perlindungan CSRF. Pengujian yang tepat menggunakan `APIClient(enforce_csrf_checks=True)` dengan `.login()` untuk memastikan request tanpa token ditolak (403) dan request dengan token diterima.
 
 ## AI Disclosure
 
@@ -195,7 +284,7 @@ AI Model: Codex GPT-6 Astra.
 
 ### Tugas 4
 
-I didn't use AI at all.
+I did not use AI at all.
 
 ### Tugas 5
 
@@ -206,7 +295,19 @@ I didn't use AI at all.
 - Updated Django tests, added JavaScript regression tests, ran coverage and browser checks, and committed the changes.
 - Made the Experience creation page as a modal.
 
-### Tutorial 07
+### Tugas 6
 
-- Adapted the existing Award AJAX frontend to the DRF API while preserving Editor access and existing forms.
-- Added API and JavaScript regression tests, verified CSRF and role permissions, and documented the API contract.
+- I stopped using ChatGPT Desktop because I encountered the "ChatGPT hit a snag" error. Instead, I used Codex CLI. Unfortunately, I was unable to share the chat link.
+- Prompt strategy: Applied the Tutorial 07 pattern to the independent assignment,
+  maintained access control for four user roles, wrote tests, and made regular commits. I provided the complete
+  instructions and grading rubric. Based on the existing code and README, the independent assignment was identified
+  as the Experience feature, while the Award feature was the adaptation of Tutorial 07.
+- Reviewed the existing models, forms, Award API, Experience page, permissions, and tests.
+- Added the Experience star relationship and database migration, serializers with explicitly defined fields,
+  text/date/skill validation, function-based API endpoints, and URL routes with SessionAuthentication.
+- Integrated the Experience page with the API to support searching, creating, updating (PATCH), starring,
+  and deleting (DELETE) experiences. Added an edit modal, deletion confirmation, CSRF protection, and toast notifications.
+- Wrote APITestCase tests covering four user roles, database modifications, validation, starring functionality,
+  read-only fields, HTTP 404/405 responses, and session-based authentication with actual CSRF enforcement.
+- Updated the JavaScript regression tests and adjusted the Editor modal expectations in the existing tests.
+- Wrote API documentation.

@@ -5,14 +5,14 @@ from rest_framework.permissions import (
 from rest_framework.request import HttpRequest
 
 class IsPortfolioOwnerOrReadOnly(BasePermission):
-    message = 'Only the portfolio owner can change awards.'
+    message = 'Only the portfolio owner can change portfolio records.'
 
     def has_permission(self, request: HttpRequest, view):
         return request.method in SAFE_METHODS or request.user.is_superuser
 
 
 class IsPortfolioOwnerOrEditorOrReadOnly(IsPortfolioOwnerOrReadOnly):
-    message = 'Only the owner can create/delete awards; Editors may update them.'
+    message = 'Only the owner can create/delete portfolio records; Editors may update them.'
 
     def has_permission(self, request: HttpRequest, view):
         if super().has_permission(request, view):

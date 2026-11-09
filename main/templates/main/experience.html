@@ -14,11 +14,13 @@
 {% block content %}
 <!-- Section: Experience -->
 <section id="experience-page" class="experience" aria-labelledby="experience-title"
-  data-endpoint="{% url 'main:get_experience_json' %}"
+  data-endpoint="{% url 'api:experience-list' %}"
   data-is-superuser="{{ user.is_superuser|yesno:'true,false' }}"
   data-is-editor="{{ is_editor|yesno:'true,false' }}"
-  data-edit-url="{% url 'main:edit_experience' '00000000-0000-0000-0000-000000000000' %}"
-  data-delete-url="{% url 'main:delete_experience' '00000000-0000-0000-0000-000000000000' %}">
+  data-is-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+  data-star-url="{% url 'api:experience-star' '00000000-0000-0000-0000-000000000000' %}"
+  data-edit-url="{% url 'api:experience-detail' '00000000-0000-0000-0000-000000000000' %}"
+  data-delete-url="{% url 'api:experience-detail' '00000000-0000-0000-0000-000000000000' %}">
   <div class="container">
     <div class="experience-heading">
       <h2 id="experience-title">Experience</h2>
@@ -38,7 +40,7 @@
     <noscript><p class="empty-state">Enable JavaScript to load experiences.</p></noscript>
   </div>
 </section>
-{% if user.is_superuser %}
+{% if user.is_superuser or is_editor %}
 {% include 'main/components/experience-form-modal.html' %}
 {% endif %}
 <script src="{% static 'js/experience.js' %}" defer></script>
