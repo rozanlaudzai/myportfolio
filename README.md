@@ -143,6 +143,85 @@ reading, login, and a write operation on the deployed site. Local tests do not
 verify the deployed service. Keep `.env`, the local database, credentials and
 virtual environments out of Git.
 
+## Tugas 6: Experience REST API
+
+Bagian mandiri adalah **Experience**, sedangkan Award tetap menjadi implementasi
+Tutorial 07. Data Experience dan Skill lama digunakan kembali. Migrasi 0009
+menambahkan relasi star tanpa menghapus data yang ada.
+
+| Method | Endpoint | Hak akses |
+| --- | --- | --- |
+| GET / HEAD | `/api/v1/experiences/` | Semua peran; pencarian `?title=...` |
+| POST | `/api/v1/experiences/` | Superuser (201) |
+| GET / HEAD | `/api/v1/experiences/<uuid>/` | Semua peran |
+| PUT / PATCH | `/api/v1/experiences/<uuid>/` | Editor dan superuser |
+| DELETE | `/api/v1/experiences/<uuid>/` | Superuser (204, body kosong) |
+| POST | `/api/v1/experiences/<uuid>/star/` | Akun login; toggle star milik request.user |
+
+Field respons: `id`, `title`, `company_name`, `company_logo`, `description`,
+`started_at`, `ended_at`, `skills` (array nama), `star_count`, dan `is_starred`.
+ID dan kedua field star read-only; email/password/daftar akun tidak diekspos.
+Kesalahan validasi memakai 400, penolakan akses 403, objek tidak ada 404.
+Tanggal akhir boleh null (masih berlangsung), tetapi tidak boleh sebelum tanggal
+mulai, termasuk saat PATCH hanya mengubah salah satu tanggal. Nama skill
+membersihkan HTML, menghapus duplikat tanpa membedakan kapital, dan memakai
+kembali Skill lama. PATCH tanpa `skills` mempertahankan relasi skill.
+
+Contoh payload POST atau PUT:
+
+```json
+{
+  "title": "Developer",
+  "company_name": "Universitas Indonesia",
+  "company_logo": "",
+  "description": "Mengembangkan aplikasi portofolio",
+  "started_at": "2026-01-01",
+  "ended_at": null,
+  "skills": ["Python", "Django"]
+}
+```
+
+Contoh PATCH: `{"description": "Deskripsi baru"}`. PUT memerlukan semua field
+teks wajib dan `started_at`; field opsional mengikuti default DRF/model.
+
+Halaman `/experience/` memakai fetch untuk seluruh aksi tanpa reload, modal
+prefill untuk Editor/pemilik, konfirmasi hapus, loading/empty/error state,
+debounce 300 ms, serta pembatalan pencarian lama. Filter aktif dipertahankan
+setelah write. Error API ditampilkan sebagai toast dengan teks aman. Semua
+write mengirim X-CSRFToken; cookie juga tersedia bagi pengguna biasa dan Editor.
+Nilai teks di HTML di-escape dan URL logo dibatasi ke HTTP/HTTPS. View HTML lama
+masih tersedia: hanya superuser dapat create/delete dan Editor dapat edit.
+
+Setelah menarik perubahan, jalankan dari virtual environment:
+
+```bash
+python manage.py migrate
+python manage.py check
+python manage.py test main
+node --test tests/awards.test.cjs tests/experience.test.cjs
+python manage.py makemigrations --check --dry-run
+python manage.py runserver
+```
+
+Buat akun pemilik dengan `python manage.py createsuperuser`. Buat grup **Editor**
+melalui admin, lalu tambahkan akun yang boleh mengedit. Akun terdaftar biasa
+hanya dapat membaca dan star. Browsable API tersedia di `/api/v1/experiences/`
+dan `/api/v1/awards/`; login tersedia melalui `/api-auth/login/`.
+
+Validasi otomatis: 68 test Django (termasuk 13 test API Award dan 8 test API
+Experience), serta regression test JavaScript untuk kedua halaman. Test penolakan
+memeriksa database; test CSRF memakai login nyata, menolak write tanpa token,
+dan menerima request dengan token. Tidak perlu menjalankan Selenium test lama:
+gunakan `test main` sesuai petunjuk tugas.
+
+Smoke test Chromium dengan runserver dan database sementara juga lulus untuk
+halaman publik, Browsable API, create/search/star/edit/delete pemilik, PATCH
+Editor, dan star pengguna biasa, tanpa error JavaScript. Data asli tidak dipakai
+untuk percobaan write. Deployment PWS dan submisi SCELE tetap perlu diverifikasi
+terpisah. Riwayat lokal mencatat merge Tutorial 07 pada 4 November 2026 pukul
+23:36:58 WIB (`c797539`); waktu push/pengumpulannya tidak dapat disimpulkan dari
+waktu commit saja.
+
 ## Pertanyaan Reflektif
 
 ### Tugas 1
@@ -168,6 +247,16 @@ virtual environments out of Git.
 2. JSON formatnya lebih compact daripada XML. Selain itu, JSON lebih human-readable karena menggunakan struktur key-value dan array.
 
 3. Client kirim request $\to$ Django ambil model object sesuai yang diinginkan request $\to$ Django kirim response dalam bentuk JSON string (menggunakan `serializers.serialize("json", data)`) agar frontend mudah untuk consume API tersebut.
+
+### Tugas 6
+
+1. **REST (Representational State Transfer)** adalah gaya arsitektur dengan batasan client–server, stateless, cache, uniform interface, layered system, dan code-on-demand yang opsional. Resource diidentifikasi dengan URI dan dimanipulasi melalui representasi; uniform interface juga mencakup pesan yang menjelaskan dirinya sendiri serta hypermedia untuk transisi aplikasi. JSON hanyalah format representasi: endpoint yang selalu memakai POST untuk membaca/menghapus belum mengikuti semantik HTTP. API tugas ini memakai pola resource dan metode HTTP, tetapi session login server dan respons tanpa hypermedia berarti belum memenuhi REST secara ketat. PUT dimaksudkan untuk mengganti representasi resource secara lengkap dan bersifat idempotent; PATCH mengirim perubahan sebagian dan tidak selalu idempotent, tergantung operasinya. Contoh: PUT ketika formulir mengirim seluruh detail Experience; PATCH `{"description": "Baru"}` ketika hanya deskripsi berubah. Pada implementasi DRF ini PUT memvalidasi semua field wajib, sementara PATCH memakai `partial=True`; field opsional yang dihilangkan masih mengikuti perilaku serializer. Sumber: [Fielding, REST](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm), [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), dan [RFC 5789](https://www.rfc-editor.org/rfc/rfc5789).
+
+2. **Serializer** mengubah instance/queryset menjadi tipe data primitif untuk dirender sebagai JSON, sekaligus memvalidasi input dan menghasilkan `validated_data` sebelum create/update. ModelSerializer menurunkan field dan validator dari model, sementara daftar field eksplisit membatasi data yang boleh keluar. Dibanding dictionary manual dengan JsonResponse, aturan tipe, required, error per field, serta create/update menjadi konsisten dan dapat dipakai ulang. Di ExperienceSerializer, method `validate_title`, `validate_company_name`, dan `validate_description` membersihkan HTML dan menolak hasil kosong; validasi lintas field memeriksa tanggal. Field star dihitung read-only. Serializer tidak otomatis mengatur otorisasi, sehingga tetap membutuhkan permission class. Sumber: [DRF Serializers](https://www.django-rest-framework.org/api-guide/serializers/).
+
+3. **Autentikasi** menentukan identitas pemanggil, misalnya SessionAuthentication membaca session login menjadi `request.user`. **Otorisasi** menentukan tindakan yang boleh dilakukan identitas tersebut. IsPortfolioOwnerOrEditorOrReadOnly mengizinkan baca publik, PUT/PATCH bagi Editor, dan create/delete hanya bagi superuser; endpoint star menggunakan IsAuthenticated. Tombol yang disembunyikan hanya mengatur tampilan: pengguna tetap dapat membuat request melalui console atau HTTP client. Karena itu server harus menolak aksi terlarang sebelum database berubah. Sumber: [DRF Authentication](https://www.django-rest-framework.org/api-guide/authentication/) dan [DRF Permissions](https://www.django-rest-framework.org/api-guide/permissions/).
+
+4. Dengan **SessionAuthentication**, browser mengirim cookie session secara otomatis. Situs penyerang dapat mencoba memanfaatkan session tersebut untuk membuat pengguna mengirim perubahan yang tidak ia kehendaki. Token CSRF yang diverifikasi server memastikan request membawa bukti yang tidak dapat sekadar diperoleh situs lain dari cookie session. POST/PUT/PATCH/DELETE melalui fetch tetap perlu X-CSRFToken; JSON dan penyembunyian tombol tidak menggantikan perlindungan ini. `force_authenticate` melewati proses autentikasi session, sedangkan APIClient secara default tidak memeriksa CSRF. Karena itu test memakai `APIClient(enforce_csrf_checks=True)` dan `.login()`, lalu membuktikan write tanpa token mendapat 403 dengan database tetap sama, serta request dengan token berhasil. Sumber: [DRF SessionAuthentication](https://www.django-rest-framework.org/api-guide/authentication/#sessionauthentication) dan [DRF Testing](https://www.django-rest-framework.org/api-guide/testing/#csrf-validation).
 
 ## AI Disclosure
 
@@ -210,3 +299,14 @@ I didn't use AI at all.
 
 - Adapted the existing Award AJAX frontend to the DRF API while preserving Editor access and existing forms.
 - Added API and JavaScript regression tests, verified CSRF and role permissions, and documented the API contract.
+
+### Tugas 6
+
+- Tool: Codex pada ChatGPT Work; bantuan mencakup API Experience, migrasi star,
+  modal AJAX, pengujian, jawaban reflektif, dan dokumentasi.
+- Strategi: memberikan spesifikasi tugas lengkap, lalu meminta implementasi
+  berdasarkan pola Award yang sudah ada, verifikasi role/CSRF, dan commit bertahap.
+- [Log prompting dan evaluasi kritis](docs/assignment-6-ai-log.md) mencatat
+  cakupan bantuan, kesalahan yang ditemukan dan diperbaiki, serta batas pengujian.
+- Hasil AI perlu dipahami dan ditinjau pemilik repo sebelum dikumpulkan; log
+  tidak mengklaim adanya review manual pengguna yang belum dilakukan.
