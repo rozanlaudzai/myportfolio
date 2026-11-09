@@ -97,14 +97,14 @@ The award serializer exposes `id`, `title`, `issuer`, `description`, `awarded_at
 without the legacy `pk`/`fields` wrapper. Text fields strip HTML and reject empty
 values; `awarded_at` must be a valid date. IDs and computed star fields are read-only.
 
-| Method | Endpoint | Access |
-| --- | --- | --- |
-| GET / HEAD | `/api/v1/awards/` | Public; `?title=...` searches titles |
-| POST | `/api/v1/awards/` | Superuser; returns 201 |
-| GET / HEAD | `/api/v1/awards/<uuid>/` | Public |
-| PUT / PATCH | `/api/v1/awards/<uuid>/` | Superuser or member of `Editor` |
-| DELETE | `/api/v1/awards/<uuid>/` | Superuser; returns empty 204 |
-| POST | `/api/v1/awards/<uuid>/star/` | Logged-in user; toggles their own star |
+| Method      | Endpoint                      | Access                                 |
+| ----------- | ----------------------------- | -------------------------------------- |
+| GET / HEAD  | `/api/v1/awards/`             | Public; `?title=...` searches titles   |
+| POST        | `/api/v1/awards/`             | Superuser; returns 201                 |
+| GET / HEAD  | `/api/v1/awards/<uuid>/`      | Public                                 |
+| PUT / PATCH | `/api/v1/awards/<uuid>/`      | Superuser or member of `Editor`        |
+| DELETE      | `/api/v1/awards/<uuid>/`      | Superuser; returns empty 204           |
+| POST        | `/api/v1/awards/<uuid>/star/` | Logged-in user; toggles their own star |
 
 Awards uses the DRF endpoints for AJAX listing, creation, starring and deletion.
 The add and delete confirmation popovers, toast messages, 300 ms search debounce,
@@ -149,14 +149,14 @@ Bagian mandiri adalah **Experience**, sedangkan Award tetap menjadi implementasi
 Tutorial 07. Data Experience dan Skill lama digunakan kembali. Migrasi 0009
 menambahkan relasi star tanpa menghapus data yang ada.
 
-| Method | Endpoint | Hak akses |
-| --- | --- | --- |
-| GET / HEAD | `/api/v1/experiences/` | Semua peran; pencarian `?title=...` |
-| POST | `/api/v1/experiences/` | Superuser (201) |
-| GET / HEAD | `/api/v1/experiences/<uuid>/` | Semua peran |
-| PUT / PATCH | `/api/v1/experiences/<uuid>/` | Editor dan superuser |
-| DELETE | `/api/v1/experiences/<uuid>/` | Superuser (204, body kosong) |
-| POST | `/api/v1/experiences/<uuid>/star/` | Akun login; toggle star milik request.user |
+| Method      | Endpoint                           | Hak akses                                  |
+| ----------- | ---------------------------------- | ------------------------------------------ |
+| GET / HEAD  | `/api/v1/experiences/`             | Semua peran; pencarian `?title=...`        |
+| POST        | `/api/v1/experiences/`             | Superuser (201)                            |
+| GET / HEAD  | `/api/v1/experiences/<uuid>/`      | Semua peran                                |
+| PUT / PATCH | `/api/v1/experiences/<uuid>/`      | Editor dan superuser                       |
+| DELETE      | `/api/v1/experiences/<uuid>/`      | Superuser (204, body kosong)               |
+| POST        | `/api/v1/experiences/<uuid>/star/` | Akun login; toggle star milik request.user |
 
 Field respons: `id`, `title`, `company_name`, `company_logo`, `description`,
 `started_at`, `ended_at`, `skills` (array nama), `star_count`, dan `is_starred`.
@@ -250,13 +250,13 @@ waktu commit saja.
 
 ### Tugas 6
 
-1. **REST (Representational State Transfer)** adalah gaya arsitektur dengan batasan client–server, stateless, cache, uniform interface, layered system, dan code-on-demand yang opsional. Resource diidentifikasi dengan URI dan dimanipulasi melalui representasi; uniform interface juga mencakup pesan yang menjelaskan dirinya sendiri serta hypermedia untuk transisi aplikasi. JSON hanyalah format representasi: endpoint yang selalu memakai POST untuk membaca/menghapus belum mengikuti semantik HTTP. API tugas ini memakai pola resource dan metode HTTP, tetapi session login server dan respons tanpa hypermedia berarti belum memenuhi REST secara ketat. PUT dimaksudkan untuk mengganti representasi resource secara lengkap dan bersifat idempotent; PATCH mengirim perubahan sebagian dan tidak selalu idempotent, tergantung operasinya. Contoh: PUT ketika formulir mengirim seluruh detail Experience; PATCH `{"description": "Baru"}` ketika hanya deskripsi berubah. Pada implementasi DRF ini PUT memvalidasi semua field wajib, sementara PATCH memakai `partial=True`; field opsional yang dihilangkan masih mengikuti perilaku serializer. Sumber: [Fielding, REST](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm), [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), dan [RFC 5789](https://www.rfc-editor.org/rfc/rfc5789).
+1. REST (Representational State Transfer) basically adalah API style dengan constraints client-server, stateless, cache, uniform interface, layered system, dan optional code-on-demand. URIs di RESTful API indentify a certain resource. JSON hanya format. `PUT` mengganti seluruh fields di suatu resource. `PATCH` memperbarui sebagian fields. Contohnya, `PUT` untuk memperbarui seluruh data Experience dan `PATCH` untuk mengubah deskripsinya saja.
 
-2. **Serializer** mengubah instance/queryset menjadi tipe data primitif untuk dirender sebagai JSON, sekaligus memvalidasi input dan menghasilkan `validated_data` sebelum create/update. ModelSerializer menurunkan field dan validator dari model, sementara daftar field eksplisit membatasi data yang boleh keluar. Dibanding dictionary manual dengan JsonResponse, aturan tipe, required, error per field, serta create/update menjadi konsisten dan dapat dipakai ulang. Di ExperienceSerializer, method `validate_title`, `validate_company_name`, dan `validate_description` membersihkan HTML dan menolak hasil kosong; validasi lintas field memeriksa tanggal. Field star dihitung read-only. Serializer tidak otomatis mengatur otorisasi, sehingga tetap membutuhkan permission class. Sumber: [DRF Serializers](https://www.django-rest-framework.org/api-guide/serializers/).
+2. Serializer pada DRF mengubah data model menjadi format yang dapat dirender sebagai JSON, memvalidasi input, serta menangani create/update. Dibandingkan dictionary manual dengan JsonResponse, serializer menyediakan validasi otomatis, penanganan error yang konsisten, dan kode yang lebih mudah digunakan kembali.
 
-3. **Autentikasi** menentukan identitas pemanggil, misalnya SessionAuthentication membaca session login menjadi `request.user`. **Otorisasi** menentukan tindakan yang boleh dilakukan identitas tersebut. IsPortfolioOwnerOrEditorOrReadOnly mengizinkan baca publik, PUT/PATCH bagi Editor, dan create/delete hanya bagi superuser; endpoint star menggunakan IsAuthenticated. Tombol yang disembunyikan hanya mengatur tampilan: pengguna tetap dapat membuat request melalui console atau HTTP client. Karena itu server harus menolak aksi terlarang sebelum database berubah. Sumber: [DRF Authentication](https://www.django-rest-framework.org/api-guide/authentication/) dan [DRF Permissions](https://www.django-rest-framework.org/api-guide/permissions/).
+3. Autentikasi memverifikasi identitas pengguna, sedangkan otorisasi menentukan hak aksesnya. Pada DRF, autentikasi dapat menggunakan `SessionAuthentication`, sementara otorisasi menggunakan permission class. Pemeriksaan harus dilakukan di server karena menyembunyikan tombol di template tidak mencegah pengguna mengirim request langsung melalui HTTP client.
 
-4. Dengan **SessionAuthentication**, browser mengirim cookie session secara otomatis. Situs penyerang dapat mencoba memanfaatkan session tersebut untuk membuat pengguna mengirim perubahan yang tidak ia kehendaki. Token CSRF yang diverifikasi server memastikan request membawa bukti yang tidak dapat sekadar diperoleh situs lain dari cookie session. POST/PUT/PATCH/DELETE melalui fetch tetap perlu X-CSRFToken; JSON dan penyembunyian tombol tidak menggantikan perlindungan ini. `force_authenticate` melewati proses autentikasi session, sedangkan APIClient secara default tidak memeriksa CSRF. Karena itu test memakai `APIClient(enforce_csrf_checks=True)` dan `.login()`, lalu membuktikan write tanpa token mendapat 403 dengan database tetap sama, serta request dengan token berhasil. Sumber: [DRF SessionAuthentication](https://www.django-rest-framework.org/api-guide/authentication/#sessionauthentication) dan [DRF Testing](https://www.django-rest-framework.org/api-guide/testing/#csrf-validation).
+4. `SessionAuthentication` menggunakan cookie session yang dikirim otomatis oleh browser sehingga rentan terhadap serangan CSRF. Oleh karena itu, request yang mengubah data memerlukan token CSRF, misalnya melalui header `X-CSRFToken`. `force_authenticate` melewati autentikasi session sehingga tidak menguji perlindungan CSRF. Pengujian yang tepat menggunakan `APIClient(enforce_csrf_checks=True)` dengan `.login()` untuk memastikan request tanpa token ditolak (403) dan request dengan token diterima.
 
 ## AI Disclosure
 
@@ -284,7 +284,7 @@ AI Model: Codex GPT-6 Astra.
 
 ### Tugas 4
 
-I didn't use AI at all.
+I did not use AI at all.
 
 ### Tugas 5
 
@@ -295,18 +295,19 @@ I didn't use AI at all.
 - Updated Django tests, added JavaScript regression tests, ran coverage and browser checks, and committed the changes.
 - Made the Experience creation page as a modal.
 
-### Tutorial 07
-
-- Adapted the existing Award AJAX frontend to the DRF API while preserving Editor access and existing forms.
-- Added API and JavaScript regression tests, verified CSRF and role permissions, and documented the API contract.
-
 ### Tugas 6
 
-- Tool: Codex pada ChatGPT Work; bantuan mencakup API Experience, migrasi star,
-  modal AJAX, pengujian, jawaban reflektif, dan dokumentasi.
-- Strategi: memberikan spesifikasi tugas lengkap, lalu meminta implementasi
-  berdasarkan pola Award yang sudah ada, verifikasi role/CSRF, dan commit bertahap.
-- [Log prompting dan evaluasi kritis](docs/assignment-6-ai-log.md) mencatat
-  cakupan bantuan, kesalahan yang ditemukan dan diperbaiki, serta batas pengujian.
-- Hasil AI perlu dipahami dan ditinjau pemilik repo sebelum dikumpulkan; log
-  tidak mengklaim adanya review manual pengguna yang belum dilakukan.
+- I stopped using ChatGPT Desktop because I encountered the "ChatGPT hit a snag" error. Instead, I used Codex CLI. Unfortunately, I was unable to share the chat link.
+- Prompt strategy: Applied the Tutorial 07 pattern to the independent assignment,
+  maintained access control for four user roles, wrote tests, and made regular commits. I provided the complete
+  instructions and grading rubric. Based on the existing code and README, the independent assignment was identified
+  as the Experience feature, while the Award feature was the adaptation of Tutorial 07.
+- Reviewed the existing models, forms, Award API, Experience page, permissions, and tests.
+- Added the Experience star relationship and database migration, serializers with explicitly defined fields,
+  text/date/skill validation, function-based API endpoints, and URL routes with SessionAuthentication.
+- Integrated the Experience page with the API to support searching, creating, updating (PATCH), starring,
+  and deleting (DELETE) experiences. Added an edit modal, deletion confirmation, CSRF protection, and toast notifications.
+- Wrote APITestCase tests covering four user roles, database modifications, validation, starring functionality,
+  read-only fields, HTTP 404/405 responses, and session-based authentication with actual CSRF enforcement.
+- Updated the JavaScript regression tests and adjusted the Editor modal expectations in the existing tests.
+- Wrote API documentation.
