@@ -36,6 +36,10 @@ class Experience(models.Model):
         blank=True,
     )
 
+    starred_by = models.ManyToManyField(
+        User, related_name='starred_experiences', blank=True,
+    )
+
     class Meta:
         ordering = ['-started_at']
 
