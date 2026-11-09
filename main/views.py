@@ -53,6 +53,7 @@ def index(request: HttpRequest):
     return render(request, 'main/index.html', context)
 
 
+@ensure_csrf_cookie
 @require_http_methods(['GET'])
 def show_experience(request: HttpRequest):
     context = {

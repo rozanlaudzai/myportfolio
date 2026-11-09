@@ -626,7 +626,11 @@ class ExperienceAjaxCreateTest(TestCase):
             self.client.logout()
             if user:
                 self.client.force_login(user)
-            self.assertNotContains(self.client.get(reverse('main:show_experience')), 'id="experience-form"')
+            page = self.client.get(reverse('main:show_experience'))
+            if user == editor:
+                self.assertContains(page, 'id="experience-form"')
+            else:
+                self.assertNotContains(page, 'id="experience-form"')
             response = self.client.post(self.url, self.data)
             self.assertEqual(response.status_code, 403)
             self.assertIn('message', response.json())
