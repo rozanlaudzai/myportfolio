@@ -2,7 +2,12 @@ from django import forms
 from django.db import transaction
 from django.utils.html import strip_tags
 
-from .models import Award, Experience, Skill
+from .models import (
+    Award,
+    Experience,
+    Skill,
+    Project,
+)
 
 class AwardForm(forms.ModelForm):
     class Meta:
@@ -128,3 +133,54 @@ class ExperienceForm(forms.ModelForm):
         if start and end and end < start:
             self.add_error('ended_at', 'End date cannot be before start date.')
         return cleaned
+
+
+class ProjectForm(forms.ModelForm):
+    class Meta:
+        model = Project
+
+        fields = [
+            'title',
+            'description',
+            'tech_stack',
+            'project_url',
+            'project_image_url',
+        ]
+
+        labels = {
+            'title': 'Project Title',
+            'description': 'Project Description',
+            'tech_stack': 'Project Tech Stack',
+            'project_url': 'Project URL',
+            'project_image_url': 'Project Image URL',
+        }
+
+        widgets = {
+            'title': forms.TextInput(
+                attrs={
+                    'placeholder': 'Portfolio Title',
+                    'maxlength': 255,
+                }
+            ),
+            'description': forms.Textarea(
+                attrs={
+                    'placeholder': 'Portfolio Description',
+                    'rows': 3,
+                }
+            ),
+            'tech_stack': forms.TextInput(
+                attrs={
+                    'placeholder': 'e.g. Go, Python, Django, TypeScript, React',
+                }
+            ),
+            'project_url': forms.URLInput(
+                attrs={
+                    'placeholder': 'https://your/project/url',
+                }
+            ),
+            'project_image_url': forms.URLInput(
+                attrs={
+                    'placeholder': 'https://drive.google.com/thumbnail?id=...&sz=w1000',
+                }
+            )
+        }
