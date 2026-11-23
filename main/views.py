@@ -288,13 +288,20 @@ def get_projects_json(request: HttpRequest):
     if title_query:
         projects = projects.filter(title__icontains=title_query)
 
-    projects_json = serializers.serialize('json', projects)
+    projects_json = serializers.serialize(
+        'json',
+        projects,
+        use_natural_foreign_keys=True,
+    )
     return HttpResponse(projects_json, content_type='application/json')
 
 
 @require_http_methods(['GET', 'POST'])
 def delete_project(request: HttpRequest, project_id):
-    project = get_object_or_404 (Project, pk=project_id)
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
+    project = get_object_or_404(Project, pk=project_id)
 
     if request.method == 'POST':
         project.delete()
@@ -306,6 +313,9 @@ def delete_project(request: HttpRequest, project_id):
 @login_required(login_url=login_url)
 @require_http_methods(['GET', 'POST'])
 def create_project(request: HttpRequest):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     form = ProjectForm(request.POST or None)
 
     if request.method == 'POST' and form.is_valid():
@@ -318,6 +328,23 @@ def create_project(request: HttpRequest):
         'form': form,
     }
     return render(request, 'main/project-form.html', context)
+
+
+@login_required(login_url=login_url)
+@require_http_methods(['GET', 'POST'])
+def toggle_star_project(request: HttpRequest, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+
+    if request.method == 'POST':
+        if request.user in project.starred_by.all():
+            project.starred_by.remove(request.user)
+        else:
+            project.starred_by.add(request.user)
+
+    return redirect('main:show_projects')
+
+
+
 
 
 @login_required(login_url=login_url)

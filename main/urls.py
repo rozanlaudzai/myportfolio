@@ -12,7 +12,11 @@ urlpatterns = [
     path('experience/add-ajax/', views.create_experience_ajax, name='create_experience_ajax'),
     path('experience/add/', views.create_experience, name='create_experience'),
     path('experience/<uuid:experience_id>/edit/', views.edit_experience, name='edit_experience'),
-    path('experience/<uuid:experience_id>/delete/', views.delete_experience, name='delete_experience'),
+    path(
+        'experience/<uuid:experience_id>/delete/',
+        views.delete_experience,
+        name='delete_experience',
+    ),
 
     # award
     path('awards/', views.show_awards, name='show_awards'),
@@ -28,6 +32,11 @@ urlpatterns = [
     path('api/projects/', views.get_projects_json, name='get_projects_json'),
     path('projects/add/', views.create_project, name='create_project'),
     path('projects/<uuid:project_id>/delete/', views.delete_project, name='delete_project'),
+    path(
+        'projects/<uuid:project_id>/star/',
+        views.toggle_star_project,
+        name='toggle_star_project',
+    ),
 
     # auth
     path('register/', views.register, name='register'),

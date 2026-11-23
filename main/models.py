@@ -88,6 +88,11 @@ class Project(models.Model):
         blank=True,
         max_length=255,
     )
+    starred_by = models.ManyToManyField(
+        User,
+        related_name='starred_projects',
+        blank=True,
+    )
 
     def __str__(self):
         return self.title

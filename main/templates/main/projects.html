@@ -16,6 +16,8 @@
     <p class="section-kicker">My Projects</p>
     <div class="project-header">
       <h1>Projects</h1>
+
+      {% if user.is_superuser %}
       <a
         href="{% url 'main:create_project' %}"
         class="button project-add-button"
@@ -23,6 +25,7 @@
         <span aria-hidden="true">+</span>
         Add a Project
       </a>
+      {% endif %}
     </div>
 
     <form
@@ -64,7 +67,10 @@
             {% endif %}
 
             <!-- prettier-ignore -->
+            {% include 'main/components/project-star.html' with project=project %}
+            {% if user.is_superuser %}
             {% include 'main/components/project-delete-modal.html' with project=project %}
+            {% endif %}
           </div>
         </div>
       </article>
