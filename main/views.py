@@ -12,6 +12,7 @@ from django.http import (
     HttpResponse,
 )
 from django.views.decorators.http import require_http_methods
+from django.core import serializers
 from django.contrib.auth import (
     login,
     logout,
@@ -26,10 +27,12 @@ from django.core.exceptions import PermissionDenied
 from .models import (
     Experience,
     Award,
+    Project,
 )
 from .forms import (
     AwardForm,
     ExperienceForm,
+    ProjectForm,
 )
 
 
@@ -256,6 +259,65 @@ def create_experience(request: HttpRequest):
         raise PermissionDenied
 
     return _save_record(request, ExperienceForm, None, 'Experience', 'main:show_experience')
+
+
+@require_http_methods(['GET'])
+def show_projects(request: HttpRequest):
+    json_response = get_projects_json(request)
+
+    projects = serializers.deserialize(
+        'json',
+        json_response.content.decode('utf-8'),
+    )
+    projects = [project.object for project in projects]
+    title_query = request.GET.get('title', '').strip()
+
+    context = {
+        'name': 'Rozan',
+        'project_list': projects,
+        'title_query': title_query,
+    }
+    return render(request, 'main/projects.html', context)
+
+
+@require_http_methods(['GET'])
+def get_projects_json(request: HttpRequest):
+    title_query = request.GET.get('title', '').strip()
+    projects = Project.objects.all()
+
+    if title_query:
+        projects = projects.filter(title__icontains=title_query)
+
+    projects_json = serializers.serialize('json', projects)
+    return HttpResponse(projects_json, content_type='application/json')
+
+
+@require_http_methods(['GET', 'POST'])
+def delete_project(request: HttpRequest, project_id):
+    project = get_object_or_404 (Project, pk=project_id)
+
+    if request.method == 'POST':
+        project.delete()
+        messages.success(request, 'Project successfully deleted!')
+
+    return redirect('main:show_projects')
+
+
+@login_required(login_url=login_url)
+@require_http_methods(['GET', 'POST'])
+def create_project(request: HttpRequest):
+    form = ProjectForm(request.POST or None)
+
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'New project successfully added!')
+        return redirect('main:show_projects')
+
+    context = {
+        'name': 'Rozan',
+        'form': form,
+    }
+    return render(request, 'main/project-form.html', context)
 
 
 @login_required(login_url=login_url)

@@ -23,6 +23,12 @@ urlpatterns = [
     path('awards/<uuid:award_id>/delete/', views.delete_award, name='delete_award'),
     path('awards/<uuid:award_id>/star/', views.toggle_star, name='toggle_star'),
 
+    # project
+    path('projects/', views.show_projects, name='show_projects'),
+    path('api/projects/', views.get_projects_json, name='get_projects_json'),
+    path('projects/add/', views.create_project, name='create_project'),
+    path('projects/<uuid:project_id>/delete/', views.delete_project, name='delete_project'),
+
     # auth
     path('register/', views.register, name='register'),
     path('login/', views.login_user, name='login'),
