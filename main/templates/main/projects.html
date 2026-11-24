@@ -28,13 +28,10 @@
       {% endif %}
     </div>
 
-    <form
-      method="get"
-      action="{% url 'main:show_projects' %}"
-      class="project-search"
-    >
+    <form id="project-search-form" class="project-search">
       <input
         type="search"
+        id="search-input"
         name="title"
         value="{{ title_query }}"
         placeholder="Search by project title"
@@ -44,7 +41,23 @@
       <button type="submit" class="button">Find</button>
     </form>
 
-    <div class="experience-grid project-grid">
+    <!-- Loading State -->
+    <div id="loading" class="empty-state hide">
+      <p>Loading projects...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="empty-state hide">
+      <p>Failed to load projects. Please try again.</p>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty" class="empty-state hide">
+      <p>There is no project yet.</p>
+    </div>
+
+    <!-- Project Grid -->
+    <div id="grid" class="experience-grid project-grid hide">
       {% for project in project_list %}
 
       <article class="experience-card">
@@ -88,4 +101,181 @@
     </div>
   </div>
 </section>
+
+<script>
+  // Konfigurasi
+  const BASE_PROJECTS_ENDPOINT = "{% url 'main:get_projects_json' %}";
+  const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
+  let projectsAbortController;
+
+  // Elemen DOM
+  const loadingState = document.getElementById("loading");
+  const errorState = document.getElementById("error");
+  const emptyState = document.getElementById("empty");
+  const gridContainer = document.getElementById("grid");
+  const searchForm = document.getElementById("project-search-form");
+  const searchInput = document.getElementById("search-input");
+
+  // Search Debouncing
+  const SEARCH_DEBOUNCE_DELAY = 300;
+  let searchDebounceTimer;
+
+  // Menyembunyikan/Menampilkan section halaman
+  function displayPageSection({
+    showLoading = false,
+    showError = false,
+    showEmpty = false,
+    showGrid = false,
+  }) {
+    loadingState.classList.toggle("hide", !showLoading);
+    errorState.classList.toggle("hide", !showError);
+    emptyState.classList.toggle("hide", !showEmpty);
+    gridContainer.classList.toggle("hide", !showGrid);
+  }
+
+  // Membuat elemen card project
+  function buildProjectCardElement(item) {
+    const project = item.fields;
+    const projectId = item.pk;
+
+    const articleElement = document.createElement("article");
+    articleElement.className = "experience-card";
+
+    const imageHtml = project.project_image_url
+      ? `<img src="${project.project_image_url}" alt="${project.title} image" class="project-image">`
+      : "";
+
+    const urlHtml = project.project_url
+      ? `<a href="${project.project_url}" class="button">View Project</a>`
+      : "";
+
+    // Dummy UUID digunakan untuk digantikan oleh ID asli dari data JSON
+    const deleteUrl =
+      "{% url 'main:delete_project' '00000000-0000-0000-0000-000000000000' %}".replace(
+        "00000000-0000-0000-0000-000000000000",
+        projectId,
+      );
+    const starUrl =
+      "{% url 'main:toggle_star' '00000000-0000-0000-0000-000000000000' %}".replace(
+        "00000000-0000-0000-0000-000000000000",
+        projectId,
+      );
+
+    const deleteHtml = IS_SUPERUSER
+      ? `
+        <form method="post" action="${deleteUrl}" style="display:inline;">
+          {% csrf_token %}
+          <button
+            type="submit"
+            class="button button-danger"
+            onclick="return confirm('Are you sure you want to delete this project?');"
+          >
+            Delete
+          </button>
+        </form>
+        `
+      : "";
+
+    const isStarredClass = project.is_starred ? "is-starred" : "";
+    const starText = project.is_starred ? "Unstar" : "Star";
+    const starTitle =
+      project.star_count > 0
+        ? `Starred by ${project.starred_by_names}`
+        : "Be the first to give a star";
+
+    // Komponen card
+    const completeCardHtml = `
+      ${imageHtml}
+      <h2>${project.title}</h2>
+      <span class="experience-category">${project.tech_stack}</span>
+      <p class="experience-description">${project.description}</p>
+      <div class="project-card-actions">
+        <div class="project-actions">
+          ${urlHtml}
+
+          <form method="post" action="${starUrl}" class="star-form">
+            {% csrf_token %}
+            <button type="submit"
+                class="button button-star${isStarredClass}"
+                title="${starTitle}">
+              <span aria-hidden="true">★</span>
+              ${starText}
+              <span class="star-count">${project.star_count}</span>
+            </button>
+          </form>
+
+          ${deleteHtml}
+        </div>
+      </div>
+    `;
+
+    articleElement.innerHTML = completeCardHtml;
+    return articleElement;
+  }
+
+  // Fetch project data
+  async function fetchProjects(searchQuery = "") {
+    if (projectsAbortController) {
+      projectsAbortController.abort();
+    }
+    projectsAbortController = new AbortController();
+
+    try {
+      displayPageSection({ showLoading: true });
+
+      const url = searchQuery
+        ? `${BASE_PROJECTS_ENDPOINT}?title=${encodeURIComponent(searchQuery)}`
+        : BASE_PROJECTS_ENDPOINT;
+
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" },
+        signal: projectsAbortController.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch data");
+      }
+
+      const projectData = await response.json();
+
+      if (projectData.length === 0) {
+        displayPageSection({ showEmpty: true });
+      } else {
+        gridContainer.innerHTML = "";
+        projectData.forEach((item) => {
+          gridContainer.appendChild(buildProjectCardElement(item));
+        });
+        displayPageSection({ showGrid: true });
+      }
+    } catch (error) {
+      if (error.name === "AbortError") {
+        return;
+      }
+      console.error("Error loading projects:", error);
+      displayPageSection({ showError: true });
+    }
+  }
+
+  // Event handlers untuk Form Search
+  function searchProjects() {
+    fetchProjects(searchInput.value.trim());
+  }
+
+  searchInput.addEventListener("input", function () {
+    clearTimeout(searchDebounceTimer);
+
+    searchDebounceTimer = setTimeout(function () {
+      searchProjects();
+    }, SEARCH_DEBOUNCE_DELAY);
+  });
+
+  searchForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    clearTimeout(searchDebounceTimer);
+    searchProjects();
+  });
+
+  // Start fetching projects
+  fetchProjects(searchInput.value.trim());
+</script>
 {% endblock content %}
