@@ -7,6 +7,7 @@
 {% block meta %}
 <link rel="stylesheet" href="{% static 'css/main/experience.css' %}" />
 <link rel="stylesheet" href="{% static 'css/main/projects.css' %}" />
+<!-- <link rel="stylesheet" href="{% static 'css/main/index.css' %}" /> -->
 {% endblock meta %}
 
 <!--  -->
@@ -18,13 +19,14 @@
       <h1>Projects</h1>
 
       {% if user.is_superuser %}
-      <a
-        href="{% url 'main:create_project' %}"
+      <button
+        type="button"
         class="button project-add-button"
+        popovertarget="add-project-modal"
       >
         <span aria-hidden="true">+</span>
         Add a Project
-      </a>
+      </button>
       {% endif %}
     </div>
 
@@ -101,6 +103,11 @@
     </div>
   </div>
 </section>
+
+<!-- prettier-ignore -->
+{% if user.is_superuser %}
+{% include 'main/components/project-form-modal.html' %}
+{% endif %}
 
 <script>
   // Konfigurasi
@@ -274,6 +281,10 @@
     clearTimeout(searchDebounceTimer);
     searchProjects();
   });
+
+  function closeProjectModal() {
+    document.getElementById("add-project-modal").hidePopover();
+  }
 
   // Start fetching projects
   fetchProjects(searchInput.value.trim());

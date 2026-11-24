@@ -268,6 +268,7 @@ def show_projects(request: HttpRequest):
     context = {
         'name': 'Rozan',
         'title_query': title_query,
+        'form': ProjectForm(),
     }
     return render(request, 'main/projects.html', context)
 
