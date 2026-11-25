@@ -12,6 +12,7 @@ from django.http import (
     HttpResponse,
 )
 from django.views.decorators.http import require_http_methods
+from django.core import serializers
 from django.contrib.auth import (
     login,
     logout,
@@ -26,10 +27,12 @@ from django.core.exceptions import PermissionDenied
 from .models import (
     Experience,
     Award,
+    Project,
 )
 from .forms import (
     AwardForm,
     ExperienceForm,
+    ProjectForm,
 )
 
 
@@ -256,6 +259,126 @@ def create_experience(request: HttpRequest):
         raise PermissionDenied
 
     return _save_record(request, ExperienceForm, None, 'Experience', 'main:show_experience')
+
+
+@require_http_methods(['GET'])
+def show_projects(request: HttpRequest):
+    title_query = request.GET.get('title', '').strip()
+
+    context = {
+        'name': 'Rozan',
+        'title_query': title_query,
+        'form': ProjectForm(),
+    }
+    return render(request, 'main/projects.html', context)
+
+
+@require_http_methods(['GET'])
+def get_projects_json(request: HttpRequest):
+    title_query = request.GET.get('title', '').strip()
+    projects = Project.objects.prefetch_related('starred_by').all()
+
+    if title_query:
+        projects = projects.filter(title__icontains=title_query)
+
+    # konstruksi data JSON secara manual agar bisa menyisipkan logika Star
+    data = []
+    for project in projects:
+        starred_users = project.starred_by.all()
+        is_starred = request.user in starred_users if request.user.is_authenticated else False
+        starred_by_names = ', '.join([u.username for u in starred_users])
+
+        data.append({
+            'pk': str(project.id),
+            'fields': {
+                'title': project.title,
+                'description': project.description,
+                'tech_stack': project.tech_stack,
+                'project_url': project.project_url,
+                'project_image_url': project.project_image_url,
+                'star_count': starred_users.count(),
+                'is_starred': is_starred,
+                'starred_by_names': starred_by_names,
+            }
+        })
+
+    return JsonResponse(data, safe=False)
+
+
+@require_http_methods(['GET', 'POST'])
+def delete_project(request: HttpRequest, project_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
+    project = get_object_or_404(Project, pk=project_id)
+
+    if request.method == 'POST':
+        project.delete()
+        messages.success(request, 'Project successfully deleted!')
+
+    return redirect('main:show_projects')
+
+
+@login_required(login_url=login_url)
+@require_http_methods(['GET', 'POST'])
+def create_project(request: HttpRequest):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
+    form = ProjectForm(request.POST or None)
+
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'New project successfully added!')
+        return redirect('main:show_projects')
+
+    context = {
+        'name': 'Rozan',
+        'form': form,
+    }
+    return render(request, 'main/project-form.html', context)
+
+
+@require_http_methods(['POST'])
+def create_project_ajax(request: HttpRequest):
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {'message': 'Only the portfolio owner can add projects.'},
+            status=403,
+        )
+
+    form = ProjectForm(request.POST)
+    if form.is_valid():
+        project: Project = form.save()
+        return JsonResponse(
+            {
+                'message': 'Project successfully added.',
+                'pk': str(project.id),
+            },
+            status=201,
+        )
+
+    return JsonResponse(
+        {'errors': form.errors.get_json_data()},
+        status=400,
+    )
+
+
+@login_required(login_url=login_url)
+@require_http_methods(['GET', 'POST'])
+def toggle_star_project(request: HttpRequest, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+
+    if request.method == 'POST':
+        if request.user in project.starred_by.all():
+            project.starred_by.remove(request.user)
+        else:
+            project.starred_by.add(request.user)
+
+    return redirect('main:show_projects')
+
+
+
 
 
 @login_required(login_url=login_url)

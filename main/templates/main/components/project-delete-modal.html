@@ -1,0 +1,60 @@
+<p class="experience-status">
+  <button
+    type="button"
+    class="button button-danger"
+    popovertarget="delete-project-{{ project.id }}"
+    aria-label="Delete {{ project.title }}"
+    title="Delete project"
+  >
+    Delete Project
+  </button>
+</p>
+
+<div
+  id="delete-project-{{ project.id }}"
+  class="project-delete-modal"
+  popover="auto"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="delete-project-title-{{ project.id }}"
+>
+  <button
+    type="button"
+    class="project-delete-modal__backdrop"
+    popovertarget="delete-project-{{ project.id }}"
+    popovertargetaction="hide"
+    aria-label="Close delete confirmation"
+  ></button>
+
+  <div class="project-delete-modal__content">
+    <button
+      type="button"
+      class="project-delete-modal__close"
+      popovertarget="delete-project-{{ project.id }}"
+      popovertargetaction="hide"
+      aria-label="Close delete confirmation"
+    >
+      ×
+    </button>
+
+    <h2 id="delete-project-title-{{ project.id }}">Delete project?</h2>
+
+    <p>Are you sure you want to delete <strong>{{ project.title }}</strong>?</p>
+
+    <div class="project-delete-modal__actions">
+      <button
+        type="button"
+        class="button button-secondary"
+        popovertarget="delete-project-{{ project.id }}"
+        popovertargetaction="hide"
+      >
+        Cancel
+      </button>
+
+      <form method="post" action="{% url 'main:delete_project' project.id %}">
+        {% csrf_token %}
+        <button type="submit" class="button button-danger">Delete</button>
+      </form>
+    </div>
+  </div>
+</div>

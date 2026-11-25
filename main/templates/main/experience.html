@@ -13,33 +13,58 @@
 <!--  -->
 {% block content %}
 <!-- Section: Experience -->
-<section id="experience-page" class="experience" aria-labelledby="experience-title"
+<section
+  id="experience-page"
+  class="experience"
+  aria-labelledby="experience-title"
   data-endpoint="{% url 'api:experience-list' %}"
   data-is-superuser="{{ user.is_superuser|yesno:'true,false' }}"
   data-is-editor="{{ is_editor|yesno:'true,false' }}"
   data-is-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
   data-star-url="{% url 'api:experience-star' '00000000-0000-0000-0000-000000000000' %}"
   data-edit-url="{% url 'api:experience-detail' '00000000-0000-0000-0000-000000000000' %}"
-  data-delete-url="{% url 'api:experience-detail' '00000000-0000-0000-0000-000000000000' %}">
+  data-delete-url="{% url 'api:experience-detail' '00000000-0000-0000-0000-000000000000' %}"
+>
   <div class="container">
     <div class="experience-heading">
       <h2 id="experience-title">Experience</h2>
       {% if user.is_superuser %}
-      <button type="button" class="button" popovertarget="add-experience-modal">Add Experience</button>
+      <button type="button" class="button" popovertarget="add-experience-modal">
+        Add Experience
+      </button>
       {% endif %}
     </div>
-    {% for message in messages %}<p class="award-message" role="status">{{ message }}</p>{% endfor %}
+    {% for message in messages %}
+    <p class="award-message" role="status">{{ message }}</p>
+    {% endfor %}
     <form id="experience-search-form" method="get" class="award-search">
-      <input id="experience-search-input" type="search" name="title" value="{{ title_query }}" placeholder="Search by experience title" aria-label="Search by experience title" class="award-search__input" />
+      <input
+        id="experience-search-input"
+        type="search"
+        name="title"
+        value="{{ title_query }}"
+        placeholder="Search by experience title"
+        aria-label="Search by experience title"
+        class="award-search__input"
+      />
       <button type="submit" class="button">Find</button>
     </form>
-    <div id="experience-loading" class="empty-state hide" role="status">Loading experiences...</div>
-    <div id="experience-error" class="empty-state hide" role="alert">Failed to load experiences. Please try searching again.</div>
+    <div id="experience-loading" class="empty-state hide" role="status">
+      Loading experiences...
+    </div>
+    <div id="experience-error" class="empty-state hide" role="alert">
+      Failed to load experiences. Please try searching again.
+    </div>
     <div id="experience-empty" class="empty-state hide" role="status"></div>
     <ol id="experience-list" class="experience-list hide" role="list"></ol>
-    <noscript><p class="empty-state">Enable JavaScript to load experiences.</p></noscript>
+    <noscript
+      ><p class="empty-state">
+        Enable JavaScript to load experiences.
+      </p></noscript
+    >
   </div>
 </section>
+<!-- prettier-ignore -->
 {% if user.is_superuser or is_editor %}
 {% include 'main/components/experience-form-modal.html' %}
 {% endif %}

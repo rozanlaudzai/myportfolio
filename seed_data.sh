@@ -1,11 +1,17 @@
 python3 manage.py shell <<'EOF'
 
-from main.models import Experience, Skill, Award
+from main.models import (
+    Award,
+    Experience,
+    Project,
+    Skill,
+)
 from datetime import date
 
 Experience.objects.all().delete()
 Skill.objects.all().delete()
 Award.objects.all().delete()
+Project.objects.all().delete()
 
 golang = Skill.objects.create(name='Go')
 reactjs = Skill.objects.create(name='React.js')
@@ -60,6 +66,13 @@ Award.objects.create(
     issuer='Universitas Lampung',
     description='National-level competitive programming competition for high school students held by Universitas Lampung',
     awarded_at=date(2025, 11, 1),
+)
+
+Project.objects.create(
+    title='GoFiber-MySQL RESTful API',
+    description='A RESTful API designed for category management, built with Go and MySQL. This project demonstrates clean architecture patterns, secure API key authentication, comprehensive error handling, and full CRUD operations.',
+    tech_stack='GoFiber, MySQL',
+    project_url='https://github.com/rozanlaudzai/gofiber-postgresql-restful-api',
 )
 
 exit()
