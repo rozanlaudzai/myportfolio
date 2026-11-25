@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'corsheaders',
     'rest_framework',
     'rest_framework.authtoken',
 
@@ -92,8 +93,6 @@ WSGI_APPLICATION = 'myportfolio.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-# PRODUCTION = os.getenv('PRODUCTION', 'False').lower() == 'true'
-
 # if PRODUCTION:
 #     DATABASES = {
 #         'default': {
@@ -117,12 +116,13 @@ DATABASES = {
     }
 }
 
-CORS_ALLOW_ALL_ORIGINS = False
+PRODUCTION = os.getenv('PRODUCTION', 'False').lower() == 'true'
+CORS_ALLOW_ALL_ORIGINS = not PRODUCTION
 
 CORS_ALLOWED_ORIGINS = [
-    origin.strip()
+    origin.strip().rstrip("/")
     for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
-    if origin.strip()
+    if origin.strip().rstrip("/")
 ]
 
 

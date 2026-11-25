@@ -182,7 +182,6 @@ def experience_star(request: Request, experience_id):
 
 
 @api_view(['GET', 'HEAD', 'POST'])
-@authentication_classes([SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrReadOnly])
 def project_list(request: Request):
     if request.method in ('GET', 'HEAD'):
@@ -207,7 +206,6 @@ def project_list(request: Request):
 
 
 @api_view(['GET', 'HEAD', 'PUT', 'PATCH', 'DELETE'])
-@authentication_classes([SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrReadOnly])
 def project_detail(request: HttpRequest, project_id):
     project = get_object_or_404(
@@ -253,3 +251,10 @@ def project_star(request: HttpRequest, project_id):
 
 
 
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_logout(request: Request):
+    if request.auth is not None:
+        request.auth.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
