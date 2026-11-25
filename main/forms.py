@@ -1,4 +1,5 @@
 from django import forms
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils.html import strip_tags
 
@@ -184,3 +185,16 @@ class ProjectForm(forms.ModelForm):
                 }
             )
         }
+
+    def clean_title(self):
+        title = strip_tags(self.cleaned_data['title']).strip()
+        if not title:
+            raise ValidationError('Project name cannot consist solely of HTML tags.')
+        return title
+
+    def clean_tech_stack(self):
+        return strip_tags(self.cleaned_data['tech_stack']).strip()
+
+    def clean_description(self):
+        return strip_tags(self.cleaned_data['description']).strip()
+

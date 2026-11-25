@@ -339,6 +339,31 @@ def create_project(request: HttpRequest):
     return render(request, 'main/project-form.html', context)
 
 
+@require_http_methods(['POST'])
+def create_project_ajax(request: HttpRequest):
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {'message': 'Only the portfolio owner can add projects.'},
+            status=403,
+        )
+
+    form = ProjectForm(request.POST)
+    if form.is_valid():
+        project: Project = form.save()
+        return JsonResponse(
+            {
+                'message': 'Project successfully added.',
+                'pk': str(project.id),
+            },
+            status=201,
+        )
+
+    return JsonResponse(
+        {'errors': form.errors.get_json_data()},
+        status=400,
+    )
+
+
 @login_required(login_url=login_url)
 @require_http_methods(['GET', 'POST'])
 def toggle_star_project(request: HttpRequest, project_id):

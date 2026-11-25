@@ -37,6 +37,7 @@ urlpatterns = [
         views.toggle_star_project,
         name='toggle_star_project',
     ),
+    path('projects/add-ajax/', views.create_project_ajax, name='create_project_ajax'),
 
     # auth
     path('register/', views.register, name='register'),
