@@ -60,15 +60,34 @@ class AwardAPITest(APITestCase):
             self.assertEqual(response.status_code, 404)
 
     def test_guest_and_visitor_cannot_write(self):
-        for user in (None, self.visitor):
+        for user, expected in ((None, 401), (self.visitor, 403)):
             self.client.force_authenticate(user=user)
-            self.assertEqual(self.client.post(self.list_url, self.payload, format='json').status_code, 403)
+            self.assertEqual(self.client.post(self.list_url, self.payload, format='json').status_code, expected)
             for method in ('put', 'patch'):
-                self.assertEqual(getattr(self.client, method)(self.detail_url, self.payload, format='json').status_code, 403)
-            self.assertEqual(self.client.delete(self.detail_url).status_code, 403)
+                self.assertEqual(getattr(self.client, method)(self.detail_url, self.payload, format='json').status_code, expected)
+            self.assertEqual(self.client.delete(self.detail_url).status_code, expected)
         self.award.refresh_from_db()
         self.assertEqual(self.award.title, self.payload['title'])
         self.assertEqual(Award.objects.count(), 1)
+
+    def test_token_permissions_and_revocation(self):
+        client = APIClient(enforce_csrf_checks=True)
+        for user, expected in ((self.visitor, 403), (self.owner, 201)):
+            login = client.post(
+                reverse('api:api_token_auth'),
+                {'username': user.username, 'password': 'test-password'},
+                format='json',
+            )
+            self.assertEqual(login.status_code, 200)
+            client.credentials(HTTP_AUTHORIZATION=f'Token {login.data["token"]}')
+            response = client.post(self.list_url, self.payload, format='json')
+            self.assertEqual(response.status_code, expected)
+            self.assertEqual(client.post(reverse('api:api_logout')).status_code, 204)
+            expired = client.post(self.list_url, self.payload, format='json')
+            self.assertEqual(expired.status_code, 401)
+            self.assertEqual(expired['WWW-Authenticate'], 'Token')
+            client.credentials()
+        self.assertEqual(Award.objects.count(), 2)
 
     def test_owner_can_create_and_strip_html(self):
         self.client.force_authenticate(self.owner)
@@ -106,7 +125,7 @@ class AwardAPITest(APITestCase):
         self.assertFalse(Award.objects.exists())
 
     def test_star_requires_login_and_toggles_for_current_user(self):
-        self.assertEqual(self.client.post(self.star_url).status_code, 403)
+        self.assertEqual(self.client.post(self.star_url).status_code, 401)
         self.award.starred_by.add(self.owner)
         self.client.force_authenticate(self.visitor)
         response = self.client.post(self.star_url)

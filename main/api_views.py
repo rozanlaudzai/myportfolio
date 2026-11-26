@@ -30,7 +30,6 @@ from .permissions import (
 
 
 @api_view(['GET', 'HEAD', 'POST'])
-@authentication_classes([SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def award_list(request: Request):
     if request.method in ('GET', 'HEAD'):
@@ -55,7 +54,6 @@ def award_list(request: Request):
 
 
 @api_view(['GET', 'HEAD', 'PUT', 'PATCH', 'DELETE'])
-@authentication_classes([SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def award_detail(request: Request, award_id):
     award = get_object_or_404(
@@ -88,7 +86,6 @@ def award_detail(request: Request, award_id):
 
 
 @api_view(['POST'])
-@authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def award_star(request: Request, award_id):
     award = get_object_or_404(Award, pk=award_id)
